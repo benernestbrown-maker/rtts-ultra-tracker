@@ -1,0 +1,1149 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>RTTS Ultra Tracker</title>
+<meta name="theme-color" content="#061017">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RTTS Tracker">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-180.png">
+
+<style>
+:root {
+  --bg:#050505;
+  --panel:#0b0b0c;
+  --panel2:#111214;
+  --panel3:#17181b;
+  --line:#24262a;
+  --line2:#34373d;
+  --text:#f4f4f5;
+  --muted:#8e949d;
+  --soft:#c8ccd2;
+
+  --lime:#d7ff1f;
+  --green:#00e676;
+  --cyan:#19e6ff;
+  --red:#ff3b3b;
+  --orange:#ff9f0a;
+  --purple:#bf5af2;
+
+  --shadow:0 18px 52px rgba(0,0,0,.62);
+}
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { background:var(--bg); }
+body {
+  margin:0;
+  min-height:100vh;
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Arial,sans-serif;
+  background:
+    radial-gradient(circle at 50% -12%, rgba(215,255,31,.08), transparent 26%),
+    linear-gradient(180deg,#050505 0%,#08090a 48%,#030303 100%);
+  padding-bottom:104px;
+}
+button,input,textarea,select { font:inherit; }
+.topbar {
+  position:sticky; top:0; z-index:40;
+  padding:calc(12px + env(safe-area-inset-top)) 14px 10px;
+  background:rgba(5,5,5,.92);
+  backdrop-filter:blur(18px);
+  border-bottom:1px solid #1c1d20;
+}
+.brand {
+  max-width:900px; margin:0 auto;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+}
+.logo { display:flex; align-items:center; gap:11px; min-width:0; }
+.logoMark {
+  width:42px; height:42px; border-radius:12px;
+  background:var(--lime);
+  color:#050505;
+  display:grid; place-items:center;
+  font-weight:1000;
+  letter-spacing:-.08em;
+  box-shadow:none;
+}
+h1 {
+  margin:0;
+  font-size:19px;
+  letter-spacing:.02em;
+  line-height:1;
+  text-transform:uppercase;
+  font-weight:1000;
+}
+.sub {
+  margin:5px 0 0;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.2;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:250px;
+}
+.countPill {
+  border:1px solid rgba(215,255,31,.45);
+  background:rgba(215,255,31,.08);
+  color:var(--lime);
+  border-radius:6px;
+  padding:8px 9px;
+  font-size:12px;
+  font-weight:1000;
+  white-space:nowrap;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.wrap { max-width:900px; margin:0 auto; padding:14px; }
+.section { display:none; animation:fade .16s ease-out; }
+.section.active { display:block; }
+@keyframes fade { from { opacity:.55; transform:translateY(4px); } to { opacity:1; transform:none; } }
+
+.hero {
+  position:relative;
+  overflow:hidden;
+  border:1px solid var(--line);
+  background:
+    linear-gradient(180deg,#101113,#09090a);
+  border-radius:18px;
+  padding:18px;
+  box-shadow:var(--shadow);
+  margin-bottom:14px;
+}
+.hero:before {
+  content:"";
+  position:absolute;
+  left:0; top:0; bottom:0;
+  width:4px;
+  background:var(--lime);
+}
+.hero:after {
+  content:"";
+  position:absolute;
+  right:-90px;
+  top:-120px;
+  width:260px;
+  height:260px;
+  background:radial-gradient(circle,rgba(215,255,31,.075),transparent 62%);
+  pointer-events:none;
+}
+.hero > * { position:relative; }
+.hero h2 {
+  margin:0;
+  font-size:32px;
+  letter-spacing:-.04em;
+  line-height:.96;
+  text-transform:uppercase;
+  font-weight:1000;
+}
+.hero p {
+  margin:9px 0 0;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.35;
+}
+.goalStrip {
+  margin-top:15px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.goal {
+  border:1px solid #23252a;
+  background:#0a0b0c;
+  border-radius:12px;
+  padding:12px;
+}
+.goal b {
+  display:block;
+  font-size:21px;
+  letter-spacing:-.04em;
+  color:var(--text);
+}
+.goal span {
+  display:block;
+  margin-top:5px;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.15;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.stats {
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:8px;
+  margin-top:14px;
+}
+.stat {
+  border:1px solid #23252a;
+  background:#0a0b0c;
+  border-radius:12px;
+  padding:13px 12px;
+  min-height:74px;
+}
+.stat b {
+  display:block;
+  font-size:26px;
+  line-height:1;
+  letter-spacing:-.05em;
+  color:var(--lime);
+  font-weight:1000;
+}
+.stat span {
+  display:block;
+  margin-top:7px;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.15;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.progressTrack {
+  height:9px;
+  background:#1a1b1e;
+  border-radius:999px;
+  overflow:hidden;
+  margin-top:15px;
+}
+.progressFill {
+  height:100%;
+  width:0;
+  background:linear-gradient(90deg,var(--lime),var(--green));
+  border-radius:999px;
+}
+
+.card {
+  border:1px solid var(--line);
+  background:linear-gradient(180deg,#101113,#080809);
+  border-radius:18px;
+  padding:14px;
+  box-shadow:0 12px 40px rgba(0,0,0,.42);
+  margin-bottom:12px;
+}
+.dayCard.todayMark {
+  border-color:rgba(215,255,31,.52);
+  box-shadow:0 0 0 1px rgba(215,255,31,.12),0 18px 54px rgba(0,0,0,.58);
+}
+.dayGrid {
+  display:grid;
+  grid-template-columns:58px 1fr;
+  gap:13px;
+}
+.dateBox {
+  height:58px;
+  border-radius:12px;
+  background:#15161a;
+  border:1px solid #2c2f35;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+}
+.dateBox .dow {
+  font-size:10px;
+  text-transform:uppercase;
+  color:var(--muted);
+  font-weight:1000;
+  letter-spacing:.12em;
+}
+.dateBox .num {
+  font-size:27px;
+  font-weight:1000;
+  letter-spacing:-.06em;
+  color:var(--text);
+}
+.dayTop {
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:flex-start;
+}
+.dayTitle {
+  margin:0;
+  font-size:19px;
+  font-weight:1000;
+  letter-spacing:-.035em;
+  line-height:1.05;
+}
+.meta {
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.35;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.priority {
+  margin-top:10px;
+  padding:11px 12px;
+  border-radius:12px;
+  background:#08090a;
+  border:1px solid #282b30;
+  color:#f2f3f5;
+  font-size:13px;
+  line-height:1.32;
+}
+.priority b { color:var(--lime); text-transform:uppercase; letter-spacing:.06em; font-size:11px; }
+.pillRow {
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin:10px 0 0;
+}
+.pill {
+  border:1px solid #30333a;
+  background:#111216;
+  color:#dfe2e7;
+  border-radius:7px;
+  padding:6px 8px;
+  font-size:10px;
+  font-weight:1000;
+  line-height:1;
+  text-transform:uppercase;
+  letter-spacing:.07em;
+}
+.tag-easy { color:var(--green); border-color:rgba(0,230,118,.38); background:rgba(0,230,118,.08); }
+.tag-long { color:var(--orange); border-color:rgba(255,159,10,.38); background:rgba(255,159,10,.08); }
+.tag-speed { color:var(--purple); border-color:rgba(191,90,242,.38); background:rgba(191,90,242,.08); }
+.tag-rehab { color:var(--cyan); border-color:rgba(25,230,255,.35); background:rgba(25,230,255,.07); }
+.load {
+  min-width:34px;
+  text-align:center;
+  border-radius:7px;
+}
+.load.R { color:#b8bec8; background:#131417; }
+.load.L { color:var(--green); background:rgba(0,230,118,.08); border-color:rgba(0,230,118,.28); }
+.load.M { color:var(--orange); background:rgba(255,159,10,.08); border-color:rgba(255,159,10,.28); }
+.load.H { color:var(--red); background:rgba(255,59,59,.08); border-color:rgba(255,59,59,.28); }
+.detail {
+  color:#d8dbe0;
+  font-size:13px;
+  line-height:1.42;
+  margin:10px 0 0;
+}
+
+.todayChecklist {
+  display:grid;
+  grid-template-columns:1fr;
+  gap:8px;
+  margin-top:12px;
+}
+.check {
+  display:flex;
+  gap:11px;
+  align-items:flex-start;
+  padding:12px;
+  border:1px solid #26292e;
+  background:#0b0c0e;
+  border-radius:12px;
+  color:#f1f2f4;
+}
+.check input,.exRow input[type=checkbox],.activationRow input[type=checkbox] {
+  width:22px;
+  height:22px;
+  accent-color:var(--lime);
+  flex:0 0 auto;
+  margin:0;
+}
+.checkTitle {
+  font-size:14px;
+  font-weight:1000;
+  display:block;
+}
+.checkSub {
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.3;
+  display:block;
+  margin-top:4px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+
+.painBox {
+  margin-top:12px;
+  border:1px solid #25282d;
+  background:#090a0c;
+  border-radius:14px;
+  padding:12px;
+}
+.painTop {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+.painTop b {
+  font-size:13px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.painBtns {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:7px;
+}
+.painBtn {
+  border:1px solid #30333a;
+  background:#111216;
+  color:#cdd1d8;
+  border-radius:10px;
+  padding:10px 7px;
+  font-size:10px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.painBtn.active.good { background:rgba(0,230,118,.11); border-color:rgba(0,230,118,.55); color:var(--green); }
+.painBtn.active.watch { background:rgba(255,159,10,.12); border-color:rgba(255,159,10,.55); color:var(--orange); }
+.painBtn.active.stop { background:rgba(255,59,59,.12); border-color:rgba(255,59,59,.55); color:var(--red); }
+
+.activationBox {
+  margin-top:12px;
+  border:1px solid #25282d;
+  background:#0a0b0d;
+  border-radius:14px;
+  overflow:hidden;
+}
+.activationHead,.exHead {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  padding:13px 13px 8px;
+  border-bottom:1px solid #202227;
+}
+.activationHead b,.exHead b {
+  font-size:13px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.activationSub {
+  padding:10px 13px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.35;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.activationGrid { display:grid; gap:0; }
+.activationRow,.exRow {
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  padding:12px 13px;
+  border-top:1px solid #1d1f23;
+}
+.activationRow:first-child { border-top:0; }
+.activationRow input[type=checkbox] { accent-color:var(--cyan); }
+.activationTitle,.exTitle {
+  display:block;
+  font-size:13px;
+  font-weight:1000;
+  line-height:1.18;
+}
+.activationMeta,.exMeta {
+  display:block;
+  margin-top:4px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.25;
+}
+.exBox {
+  margin-top:12px;
+  border:1px solid #25282d;
+  background:#0a0b0d;
+  border-radius:14px;
+  overflow:hidden;
+}
+.badge {
+  border:1px solid rgba(215,255,31,.45);
+  background:rgba(215,255,31,.08);
+  color:var(--lime);
+  border-radius:7px;
+  padding:6px 7px;
+  font-size:10px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.sessionName {
+  padding:11px 13px 8px;
+  color:var(--lime);
+  font-size:11px;
+  font-weight:1000;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  background:#08090a;
+  border-top:1px solid #202227;
+}
+.exText { flex:1; min-width:0; }
+.weight {
+  display:flex;
+  align-items:center;
+  gap:5px;
+  margin-left:auto;
+  padding-top:0;
+}
+.weight input {
+  width:70px;
+  border:1px solid #30333a;
+  background:#050506;
+  color:var(--text);
+  border-radius:8px;
+  padding:8px;
+  text-align:right;
+  font-size:13px;
+}
+.weight span {
+  font-size:10px;
+  color:var(--muted);
+  font-weight:1000;
+  text-transform:uppercase;
+}
+
+textarea,.search {
+  width:100%;
+  color:var(--text);
+  background:#070708;
+  border:1px solid #282b30;
+  border-radius:12px;
+  padding:12px;
+  outline:none;
+}
+textarea {
+  min-height:76px;
+  margin-top:10px;
+  resize:vertical;
+  font-size:14px;
+  line-height:1.35;
+}
+.search { margin-top:12px; }
+textarea:focus,.search:focus,.weight input:focus {
+  border-color:rgba(215,255,31,.65);
+  box-shadow:0 0 0 3px rgba(215,255,31,.10);
+}
+
+.weekHead {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+}
+.weekTitle {
+  margin:0;
+  font-size:24px;
+  letter-spacing:-.05em;
+  text-transform:uppercase;
+  font-weight:1000;
+}
+.btn {
+  border:1px solid #383b42;
+  background:#16171b;
+  color:var(--text);
+  border-radius:10px;
+  padding:11px 13px;
+  font-weight:1000;
+  min-width:82px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.btn.primary {
+  background:var(--lime);
+  color:#050505;
+  border:0;
+}
+.weekDays {
+  display:none;
+  margin-top:12px;
+}
+.week.open .weekDays { display:block; }
+.weekMiniStats {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-top:12px;
+}
+.mini {
+  border:1px solid #23252a;
+  background:#0a0b0c;
+  border-radius:12px;
+  padding:10px;
+}
+.mini b {
+  display:block;
+  font-size:18px;
+  color:var(--lime);
+}
+.mini span {
+  display:block;
+  margin-top:4px;
+  color:var(--muted);
+  font-size:9px;
+  line-height:1.1;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+.libraryItem {
+  border-top:1px solid #202227;
+  padding:13px 0;
+}
+.libraryItem:first-child { border-top:0; }
+.libraryItem b {
+  display:block;
+  font-size:14px;
+}
+.libraryItem p {
+  margin:5px 0 0;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.35;
+}
+.alert {
+  border-color:rgba(255,59,59,.35);
+  background:linear-gradient(180deg,rgba(255,59,59,.09),#09090a);
+}
+.toolbar {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:12px;
+}
+
+.tabs {
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:50;
+  padding:9px 10px calc(9px + env(safe-area-inset-bottom));
+  background:rgba(5,5,5,.92);
+  backdrop-filter:blur(18px);
+  border-top:1px solid #1c1d20;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:7px;
+}
+.tab {
+  border:1px solid transparent;
+  background:transparent;
+  color:var(--muted);
+  border-radius:10px;
+  padding:9px 4px 8px;
+  font-weight:1000;
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.07em;
+}
+.tab span {
+  display:block;
+  font-size:18px;
+  line-height:1;
+  margin-bottom:4px;
+  filter:grayscale(1);
+}
+.tab.active {
+  color:#050505;
+  background:var(--lime);
+  border-color:transparent;
+  box-shadow:none;
+}
+.tab.active span { filter:none; }
+.empty {
+  padding:26px;
+  color:var(--muted);
+  text-align:center;
+}
+@media(min-width:720px) {
+  .wrap { padding:20px; }
+  .stats { grid-template-columns:repeat(4,1fr); }
+  .tabs {
+    max-width:900px;
+    left:50%;
+    transform:translateX(-50%);
+    border-radius:18px 18px 0 0;
+  }
+  .dayGrid { grid-template-columns:66px 1fr; }
+  .dateBox { height:66px; }
+  .sub { max-width:480px; }
+}
+</style>
+
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">
+      <div class="logoMark">RT</div>
+      <div>
+        <h1>RTTS Ultra Tracker</h1>
+        <p class="sub">100km · sub-12 · Race to the Stones</p>
+      </div>
+    </div>
+    <div class="countPill"><span id="topCountdown">—</span> days</div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="today" class="section active"></section>
+
+  <section id="plan" class="section">
+    <div class="hero">
+      <h2>Training plan</h2>
+      <p>Weekly structure, daily sessions, activation, rehab and weights.</p>
+      <input id="search" class="search" type="search" placeholder="Search long run, S&C A, rehab, strides…">
+    </div>
+    <div id="weeks"></div>
+  </section>
+
+  <section id="strength" class="section">
+    <div class="hero">
+      <h2>Strength</h2>
+      <p>Exercise library, S&C sessions, activation and fuelling notes.</p>
+    </div>
+    <div id="libraryContent"></div>
+  </section>
+
+  <section id="progress" class="section">
+    <div class="hero">
+      <h2>Progress</h2>
+      <p>Your completion status is saved locally on this device.</p>
+      <div class="stats">
+        <div class="stat"><b id="pDays">0</b><span>days started</span></div>
+        <div class="stat"><b id="pMiles">0</b><span>run miles ticked</span></div>
+        <div class="stat"><b id="pActivation">0</b><span>activation ticks</span></div>
+        <div class="stat"><b id="pExercises">0</b><span>strength ticks</span></div>
+      </div>
+      <div class="progressTrack"><div id="pFill" class="progressFill"></div></div>
+      <div class="toolbar">
+        <button class="btn primary" onclick="jumpToday()">Today</button>
+        <button class="btn" onclick="exportProgress()">Backup</button>
+      </div>
+    </div>
+    <div class="card alert">
+      <h2 class="weekTitle">Pain rule</h2>
+      <p class="detail">If the IT band rises above 2/10, changes your gait, or gets worse as the run goes on, stop the session and protect the next 48 hours.</p>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs">
+  <button class="tab active" data-tab="today"><span>🏠</span>Today</button>
+  <button class="tab" data-tab="plan"><span>📅</span>Plan</button>
+  <button class="tab" data-tab="strength"><span>🏋️</span>Strength</button>
+  <button class="tab" data-tab="progress"><span>📈</span>Progress</button>
+</nav>
+
+<script id="planData" type="application/json">{"plan":[{"week":"Start weekend","sheet":"Wk 0","phase":"Post-marathon ITB reset","start":"2026-04-25","totalMiles":4,"objectives":{"Technical":"Calm the IT band down, keep rhythm, no hero work.","Fitness":"Maintain frequency without adding meaningful fatigue.","Strength":"Daily 10–12 min glute/hip activation only.","Notes":"Follow pain rule. If ITB pain rises or gait changes, stop the run and protect the next 48 hours."},"days":[{"date":"2026-04-25","day":"Monday","miles":0,"other":"","runType":"Rest","effort":"Rest","loading":"R","notes":"","pace":"None","title":"Rest"},{"date":"2026-04-26","day":"Tuesday","miles":0,"other":"","runType":"Rest","effort":"Rest","loading":"R","notes":"","pace":"None","title":"Rest"},{"date":"2026-04-27","day":"Wednesday","miles":0,"other":"","runType":"Rest","effort":"Rest","loading":"R","notes":"","pace":"None","title":"Rest"},{"date":"2026-04-28","day":"Thursday","miles":0,"other":"","runType":"Rest","effort":"Rest","loading":"R","notes":"","pace":"None","title":"Rest"},{"date":"2026-04-29","day":"Friday","miles":0,"other":"","runType":"Rest","effort":"Rest","loading":"R","notes":"","pace":"None","title":"Rest"},{"date":"2026-04-30","day":"Saturday","miles":0,"other":"Rehab + walk","runType":"Rest / mobility","effort":"Easy conversational","loading":"R","notes":"No run unless fully pain-free. 20–30 min walk, mobility, glute activation.","pace":"None","title":"Rest / mobility + Rehab + walk"},{"date":"2026-05-01","day":"Sunday","miles":4,"other":"Rehab","runType":"Easy only","effort":"Easy conversational","loading":"L","notes":"30–45 min easy jog on flat treadmill/road only if pain-free. Stop if ITB rises above 2/10.","pace":"None","title":"Easy only + Rehab"}],"plannedMiles":4,"longRun":4,"focus":"Calm the IT band down, keep rhythm, no hero work."},{"week":"Week 1","sheet":"Wk 1","phase":"Rebuild / protect ITB","start":"2026-04-27","totalMiles":34,"objectives":{"Technical":"Seven-day rhythm, all easy, remove carbon shoe trigger.","Fitness":"Easy aerobic volume and tissue tolerance.","Strength":"2 light S&C sessions, glute med / hip control focus.","Notes":"Follow pain rule. If ITB pain rises or gait changes, stop the run and protect the next 48 hours."},"days":[{"date":"2026-04-27","day":"Monday","miles":0,"other":"S&C A + mobility","runType":"Rest","effort":"Rest","loading":"R","notes":"No running. Strength A light. This is still marathon recovery.","pace":"None","title":"Rest + S&C A + mobility"},{"date":"2026-04-28","day":"Tuesday","miles":5,"other":"","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Flat, conversational. No carbon shoes.","pace":"None","title":"Easy"},{"date":"2026-04-29","day":"Wednesday","miles":6,"other":"S&C B","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Easy + 4 x 20 sec relaxed strides only if completely symptom-free.","pace":"Option A: 4 x 20 sec relaxed strides only if ITB is silent","title":"Easy + S&C B"},{"date":"2026-04-30","day":"Thursday","miles":5,"other":"","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Keep it boring. Stop if the ITB grabs.","pace":"None","title":"Easy"},{"date":"2026-05-01","day":"Friday","miles":0,"other":"Rehab + walk","runType":"Rest","effort":"Rest","loading":"R","notes":"No run. Walk only.","pace":"None","title":"Rest + Rehab + walk"},{"date":"2026-05-02","day":"Saturday","miles":8,"other":"","runType":"Easy trail","effort":"Easy conversational","loading":"M","notes":"Soft surface if possible, no aggressive camber.","pace":"None","title":"Easy trail"},{"date":"2026-05-03","day":"Sunday","miles":10,"other":"","runType":"Long easy","effort":"Easy conversational","loading":"M","notes":"Fuel practice starts: 40–60g carbs/hour, no pace target.","pace":"None","title":"Long easy"}],"plannedMiles":34,"longRun":10,"focus":"Seven-day rhythm, all easy, remove carbon shoe trigger."},{"week":"Week 2","sheet":"Wk 2","phase":"Base to ultra-specific","start":"2026-05-04","totalMiles":44,"objectives":{"Technical":"Build mileage without intensity; introduce gentle hills.","Fitness":"Aerobic base, hiking economy, pain-free consistency.","Strength":"2 S&C sessions, still no max lifting.","Notes":"Follow pain rule. If ITB pain rises or gait changes, stop the run and protect the next 48 hours."},"days":[{"date":"2026-05-04","day":"Monday","miles":4,"other":"S&C A","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Recovery shuffle or treadmill.","pace":"None","title":"Easy + S&C A"},{"date":"2026-05-05","day":"Tuesday","miles":6,"other":"","runType":"Easy + strides","effort":"Easy conversational","loading":"L","notes":"Gentle rolling route, hike steeper bits. Add 6 x 20 sec relaxed strides after only if ITB is calm.","pace":"Option A: 6 x 20 sec relaxed strides after the run if pain-free","title":"Easy + strides"},{"date":"2026-05-06","day":"Wednesday","miles":8,"other":"S&C B","runType":"Easy / medium","effort":"Easy conversational","loading":"M","notes":"Keep cadence light. No sustained effort.","pace":"None","title":"Easy / medium + S&C B"},{"date":"2026-05-07","day":"Thursday","miles":6,"other":"","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Flat route.","pace":"None","title":"Easy"},{"date":"2026-05-08","day":"Friday","miles":4,"other":"Rehab","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Very easy, just frequency.","pace":"None","title":"Easy + Rehab"},{"date":"2026-05-09","day":"Saturday","miles":0,"other":"","runType":"Rest","effort":"Rest","loading":"R","notes":"Full rest or mobility only.","pace":"None","title":"Rest"},{"date":"2026-05-10","day":"Sunday","miles":16,"other":"","runType":"Long easy trail","effort":"Easy conversational","loading":"H","notes":"Ridgeway-style effort. Practise walking climbs and eating from the start.","pace":"None","title":"Long easy trail"}],"plannedMiles":44,"longRun":16,"focus":"Build mileage without intensity; introduce gentle hills."},{"week":"Week 3","sheet":"Wk 3","phase":"Base / fatigue resistance","start":"2026-05-11","totalMiles":52,"objectives":{"Technical":"First controlled back-to-back weekend.","Fitness":"Durability and running on slightly tired legs.","Strength":"2 sessions, moderate load, no grinding reps.","Notes":"Follow pain rule. If ITB pain rises or gait changes, stop the run and protect the next 48 hours."},"days":[{"date":"2026-05-11","day":"Monday","miles":4,"other":"S&C A","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Keep it genuinely easy.","pace":"None","title":"Easy + S&C A"},{"date":"2026-05-12","day":"Tuesday","miles":6,"other":"","runType":"Easy hills","effort":"Easy conversational","loading":"M","notes":"Rolling route. Short power-hike practice.","pace":"None","title":"Easy hills"},{"date":"2026-05-13","day":"Wednesday","miles":9,"other":"S&C B","runType":"Midweek medium","effort":"Easy conversational","loading":"M","notes":"Easy effort, time-on-feet more important than pace.","pace":"None","title":"Midweek medium + S&C B"},{"date":"2026-05-14","day":"Thursday","miles":6,"other":"","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Flat and relaxed.","pace":"None","title":"Easy"},{"date":"2026-05-15","day":"Friday","miles":3,"other":"Rehab","runType":"Easy + strides","effort":"Easy conversational","loading":"L","notes":"Optional 6 x 15 sec strides if symptom-free.","pace":"Option A: 6 x 15–20 sec relaxed strides if pain-free","title":"Easy + strides + Rehab"},{"date":"2026-05-16","day":"Saturday","miles":8,"other":"","runType":"Easy trail","effort":"Easy conversational","loading":"M","notes":"Easy, fuel every 30 min.","pace":"None","title":"Easy trail"},{"date":"2026-05-17","day":"Sunday","miles":16,"other":"","runType":"Long trail","effort":"Easy conversational","loading":"H","notes":"Run/walk from the start. 60–75g carbs/hour.","pace":"None","title":"Long trail"}],"plannedMiles":52,"longRun":16,"focus":"First controlled back-to-back weekend."},{"week":"Week 4","sheet":"Wk 4","phase":"Cutback / absorb","start":"2026-05-18","totalMiles":42,"objectives":{"Technical":"Drop load before the proper ultra block.","Fitness":"Absorb gains, keep legs fresh, monitor ITB.","Strength":"1–2 light sessions, focus on control.","Notes":"Follow pain rule. If ITB pain rises or gait changes, stop the run and protect the next 48 hours."},"days":[{"date":"2026-05-18","day":"Monday","miles":0,"other":"Mobility","runType":"Rest","effort":"Rest","loading":"R","notes":"Full rest.","pace":"None","title":"Rest + Mobility"},{"date":"2026-05-19","day":"Tuesday","miles":6,"other":"S&C A","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Flat, easy.","pace":"Option A: 6 x 20 sec relaxed strides if pain-free","title":"Easy + S&C A"},{"date":"2026-05-20","day":"Wednesday","miles":8,"other":"","runType":"Easy","effort":"Easy conversational","loading":"M","notes":"Comfortable only.","pace":"None","title":"Easy"},{"date":"2026-05-21","day":"Thursday","miles":6,"other":"S&C B","runType":"Easy hills","effort":"Easy conversational","loading":"L","notes":"Very gentle hills, no pushing.","pace":"None","title":"Easy hills + S&C B"},{"date":"2026-05-22","day":"Friday","miles":4,"other":"","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Shakeout.","pace":"None","title":"Easy"},{"date":"2026-05-23","day":"Saturday","miles":4,"other":"Rehab","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Optional. Take rest instead if niggly.","pace":"None","title":"Easy + Rehab"},{"date":"2026-05-24","day":"Sunday","miles":14,"other":"","runType":"Long easy","effort":"Easy conversational","loading":"M","notes":"No pace target. Finish feeling you could keep going.","pace":"None","title":"Long easy"}],"plannedMiles":42,"longRun":14,"focus":"Drop load before the proper ultra block."},{"week":"Week 5","sheet":"Wk 5","phase":"Ultra build","start":"2026-05-25","totalMiles":58,"objectives":{"Technical":"Start specific long-run stacking and kit/fuel testing.","Fitness":"Fatigue resistance, long trail efficiency.","Strength":"2 sessions, moderate-heavy but low volume.","Notes":"Follow pain rule. If ITB pain rises or gait changes, stop the run and protect the next 48 hours."},"days":[{"date":"2026-05-25","day":"Monday","miles":5,"other":"S&C A","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Easy recovery.","pace":"None","title":"Easy + S&C A"},{"date":"2026-05-26","day":"Tuesday","miles":7,"other":"","runType":"Hilly economy","effort":"Controlled strong uphill only","loading":"M","notes":"6–8 x 30 sec uphill strong, jog/walk back. Smooth, not a sprint; skip if ITB has grumbled.","pace":"Option B: 6–8 x 30 sec uphill strong, walk/jog back; only if ITB has been calm","title":"Hilly economy"},{"date":"2026-05-27","day":"Wednesday","miles":10,"other":"S&C B","runType":"Midweek medium","effort":"Easy conversational","loading":"M","notes":"Steady but not marathon effort.","pace":"None","title":"Midweek medium + S&C B"},{"date":"2026-05-28","day":"Thursday","miles":6,"other":"","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Flat recovery.","pace":"None","title":"Easy"},{"date":"2026-05-29","day":"Friday","miles":4,"other":"Rehab","runType":"Easy + strides","effort":"Easy conversational","loading":"L","notes":"Optional 6 x 20 sec strides.","pace":"None","title":"Easy + strides + Rehab"},{"date":"2026-05-30","day":"Saturday","miles":18,"other":"","runType":"Long trail","effort":"Easy conversational","loading":"H","notes":"Full race kit/fuel. 60–90g carbs/hour.","pace":"None","title":"Long trail"},{"date":"2026-05-31","day":"Sunday","miles":8,"other":"","runType":"Back-to-back easy","effort":"Easy conversational","loading":"M","notes":"Very easy on tired legs. Walk breaks allowed.","pace":"None","title":"Back-to-back easy"}],"plannedMiles":58,"longRun":18,"focus":"Start specific long-run stacking and kit/fuel testing."},{"week":"Week 6","sheet":"Wk 6","phase":"Ultra build","start":"2026-06-01","totalMiles":62,"objectives":{"Technical":"Build the long-run ceiling without racing training.","Fitness":"Time-on-feet, climbs, descending resilience.","Strength":"2 sessions, one moderate-heavy, one light.","Notes":"Follow pain rule. If ITB pain rises or gait changes, stop the run and protect the next 48 hours."},"days":[{"date":"2026-06-01","day":"Monday","miles":5,"other":"S&C A","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Soft recovery.","pace":"None","title":"Easy + S&C A"},{"date":"2026-06-02","day":"Tuesday","miles":8,"other":"","runType":"Hill strength","effort":"Controlled strong uphill only","loading":"M","notes":"8–10 x 30 sec uphill strong, jog/walk down. If completely settled, 6–8 x 60 sec is acceptable; never sprint.","pace":"Option B: 8–10 x 30 sec uphill strong OR keep original 60-sec hill reps if completely settled","title":"Hill strength"},{"date":"2026-06-03","day":"Wednesday","miles":11,"other":"S&C B light","runType":"Midweek medium","effort":"Easy conversational","loading":"M","notes":"Easy-moderate only.","pace":"None","title":"Midweek medium + S&C B light"},{"date":"2026-06-04","day":"Thursday","miles":6,"other":"","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Keep it light.","pace":"None","title":"Easy"},{"date":"2026-06-05","day":"Friday","miles":4,"other":"Rehab","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Short easy run.","pace":"None","title":"Easy + Rehab"},{"date":"2026-06-06","day":"Saturday","miles":22,"other":"","runType":"Long trail","effort":"Easy conversational","loading":"H","notes":"Time-on-feet. Practise pit-stop routine. No marathon pace.","pace":"None","title":"Long trail"},{"date":"2026-06-07","day":"Sunday","miles":6,"other":"","runType":"Back-to-back easy","effort":"Easy conversational","loading":"M","notes":"Shuffle/walk. Purpose is resilience, not speed.","pace":"None","title":"Back-to-back easy"}],"plannedMiles":62,"longRun":22,"focus":"Build the long-run ceiling without racing training."},{"week":"Week 7","sheet":"Wk 7","phase":"Cutback / sharpen durability","start":"2026-06-08","totalMiles":52,"objectives":{"Technical":"Reduce volume and maintain neuromuscular pop.","Fitness":"Recover while keeping hill economy.","Strength":"1–2 sessions, reduce load if legs feel heavy.","Notes":"Follow pain rule. If ITB pain rises or gait changes, stop the run and protect the next 48 hours."},"days":[{"date":"2026-06-08","day":"Monday","miles":0,"other":"Mobility","runType":"Rest","effort":"Rest","loading":"R","notes":"Full rest.","pace":"None","title":"Rest + Mobility"},{"date":"2026-06-09","day":"Tuesday","miles":7,"other":"S&C A","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Flat easy.","pace":"None","title":"Easy + S&C A"},{"date":"2026-06-10","day":"Wednesday","miles":10,"other":"","runType":"Easy hills","effort":"Easy conversational","loading":"M","notes":"Rolling. Comfortable.","pace":"None","title":"Easy hills"},{"date":"2026-06-11","day":"Thursday","miles":7,"other":"S&C B light","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"No fatigue chasing.","pace":"None","title":"Easy + S&C B light"},{"date":"2026-06-12","day":"Friday","miles":5,"other":"","runType":"Easy + strides","effort":"Easy conversational","loading":"L","notes":"6 x 20 sec strides if symptom-free.","pace":"Option A: 6 x 20 sec relaxed strides","title":"Easy + strides"},{"date":"2026-06-13","day":"Saturday","miles":5,"other":"Rehab","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Optional easy only.","pace":"None","title":"Easy + Rehab"},{"date":"2026-06-14","day":"Sunday","miles":18,"other":"","runType":"Long easy trail","effort":"Easy conversational","loading":"H","notes":"Practise relaxed pacing and eating. Finish controlled.","pace":"None","title":"Long easy trail"}],"plannedMiles":52,"longRun":18,"focus":"Reduce volume and maintain neuromuscular pop."},{"week":"Week 8","sheet":"Wk 8","phase":"Peak specificity","start":"2026-06-15","totalMiles":68,"objectives":{"Technical":"Biggest training week and main dress rehearsal.","Fitness":"Race-specific fatigue resistance and fuelling confidence.","Strength":"1 light maintenance session only.","Notes":"Follow pain rule. If ITB pain rises or gait changes, stop the run and protect the next 48 hours."},"days":[{"date":"2026-06-15","day":"Monday","miles":5,"other":"S&C maintenance","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Recovery. Keep strength very light.","pace":"None","title":"Easy + S&C maintenance"},{"date":"2026-06-16","day":"Tuesday","miles":8,"other":"","runType":"Hilly easy","effort":"Easy conversational","loading":"M","notes":"Power-hike steep sections.","pace":"None","title":"Hilly easy"},{"date":"2026-06-17","day":"Wednesday","miles":10,"other":"","runType":"Medium + steady","effort":"Controlled steady, below threshold","loading":"M","notes":"Easy overall with 2 x 15 min steady/controlled. This is pace retention, not marathon training.","pace":"Option C: 2 x 15 min steady/controlled, not threshold, only if symptom-free","title":"Medium + steady"},{"date":"2026-06-18","day":"Thursday","miles":6,"other":"","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Flat recovery.","pace":"None","title":"Easy"},{"date":"2026-06-19","day":"Friday","miles":4,"other":"Mobility","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Short and calm.","pace":"None","title":"Easy + Mobility"},{"date":"2026-06-20","day":"Saturday","miles":28,"other":"","runType":"Peak long trail","effort":"Easy conversational","loading":"H","notes":"A-event simulation. Race kit, shoes, socks, pack, 70–90g carbs/hour. Cap effort. Optional 30 only if ITB has been silent.","pace":"None","title":"Peak long trail"},{"date":"2026-06-21","day":"Sunday","miles":7,"other":"","runType":"Back-to-back walk/run","effort":"Easy conversational","loading":"M","notes":"Very easy. Hiking is acceptable. This is fatigue resistance.","pace":"None","title":"Back-to-back walk/run"}],"plannedMiles":68,"longRun":28,"focus":"Biggest training week and main dress rehearsal."},{"week":"Week 9","sheet":"Wk 9","phase":"Specific consolidation","start":"2026-06-22","totalMiles":58,"objectives":{"Technical":"One more specific weekend, less brutal than peak week.","Fitness":"Lock in fuelling and pacing without digging a hole.","Strength":"1 maintenance session.","Notes":"Follow pain rule. If ITB pain rises or gait changes, stop the run and protect the next 48 hours."},"days":[{"date":"2026-06-22","day":"Monday","miles":0,"other":"Mobility","runType":"Rest","effort":"Rest","loading":"R","notes":"Full rest after peak weekend.","pace":"None","title":"Rest + Mobility"},{"date":"2026-06-23","day":"Tuesday","miles":7,"other":"S&C maintenance","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Flat easy.","pace":"None","title":"Easy + S&C maintenance"},{"date":"2026-06-24","day":"Wednesday","miles":10,"other":"","runType":"Medium + steady","effort":"Controlled steady, below threshold","loading":"M","notes":"30–40 min steady/controlled inside the run if ITB is silent. Keep it smooth, no marathon-pace ego.","pace":"Option C: 30–40 min steady/controlled inside the 10 miles, not marathon-session effort","title":"Medium + steady"},{"date":"2026-06-25","day":"Thursday","miles":7,"other":"","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Relaxed.","pace":"None","title":"Easy"},{"date":"2026-06-26","day":"Friday","miles":4,"other":"Rehab","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Short easy run.","pace":"None","title":"Easy + Rehab"},{"date":"2026-06-27","day":"Saturday","miles":22,"other":"","runType":"Long trail","effort":"Easy conversational","loading":"H","notes":"Race kit. Keep stops efficient. 70–90g carbs/hour.","pace":"None","title":"Long trail"},{"date":"2026-06-28","day":"Sunday","miles":8,"other":"","runType":"Back-to-back easy","effort":"Easy conversational","loading":"M","notes":"Easy shuffle/walk, no pace pride.","pace":"None","title":"Back-to-back easy"}],"plannedMiles":58,"longRun":22,"focus":"One more specific weekend, less brutal than peak week."},{"week":"Week 10","sheet":"Wk 10","phase":"Taper 1","start":"2026-06-29","totalMiles":40,"objectives":{"Technical":"Reduce volume, keep frequency, keep legs awake.","Fitness":"Freshen up while preserving rhythm.","Strength":"1 very light activation session only.","Notes":"Follow pain rule. If ITB pain rises or gait changes, stop the run and protect the next 48 hours."},"days":[{"date":"2026-06-29","day":"Monday","miles":0,"other":"Mobility","runType":"Rest","effort":"Rest","loading":"R","notes":"Full rest.","pace":"None","title":"Rest + Mobility"},{"date":"2026-06-30","day":"Tuesday","miles":6,"other":"Glute activation","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Easy.","pace":"None","title":"Easy + Glute activation"},{"date":"2026-07-01","day":"Wednesday","miles":8,"other":"","runType":"Easy with pickups","effort":"Easy conversational","loading":"M","notes":"Include 6 x 60 sec at ultra effort, not hard.","pace":"Option A/C light: 6 x 60 sec controlled pick-ups at ultra-to-steady effort","title":"Easy with pickups"},{"date":"2026-07-02","day":"Thursday","miles":6,"other":"","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Flat relaxed.","pace":"None","title":"Easy"},{"date":"2026-07-03","day":"Friday","miles":4,"other":"","runType":"Easy + strides","effort":"Easy conversational","loading":"L","notes":"4 x 20 sec strides if pain-free.","pace":"Option A: 4 x 20 sec relaxed strides","title":"Easy + strides"},{"date":"2026-07-04","day":"Saturday","miles":0,"other":"","runType":"Rest","effort":"Rest","loading":"R","notes":"Rest.","pace":"None","title":"Rest"},{"date":"2026-07-05","day":"Sunday","miles":16,"other":"","runType":"Long easy","effort":"Easy conversational","loading":"H","notes":"Last proper long run. Everything should feel contained.","pace":"None","title":"Long easy"}],"plannedMiles":40,"longRun":16,"focus":"Reduce volume, keep frequency, keep legs awake."},{"week":"Race week","sheet":"Wk 11","phase":"Race week","start":"2026-07-06","totalMiles":74.1,"objectives":{"Technical":"Arrive healthy, calm and fuelled.","Fitness":"No fitness to gain now. Protect the ITB and glycogen.","Strength":"Activation only. No lifting.","Notes":"Follow pain rule. If ITB pain rises or gait changes, stop the run and protect the next 48 hours."},"days":[{"date":"2026-07-06","day":"Monday","miles":0,"other":"Mobility","runType":"Rest","effort":"Rest","loading":"R","notes":"Rest. Check kit, shoes, socks, blister plan.","pace":"None","title":"Rest + Mobility"},{"date":"2026-07-07","day":"Tuesday","miles":4,"other":"Glute activation","runType":"Easy","effort":"Easy conversational","loading":"L","notes":"Easy jog, no fatigue.","pace":"None","title":"Easy + Glute activation"},{"date":"2026-07-08","day":"Wednesday","miles":5,"other":"","runType":"Easy + strides","effort":"Easy conversational","loading":"L","notes":"Easy with 4 x 20 sec relaxed strides.","pace":"Option A: 4 x 20 sec relaxed strides only","title":"Easy + strides"},{"date":"2026-07-09","day":"Thursday","miles":3,"other":"","runType":"Shakeout","effort":"Easy conversational","loading":"L","notes":"Very easy.","pace":"None","title":"Shakeout"},{"date":"2026-07-10","day":"Friday","miles":0,"other":"Carb load","runType":"Rest","effort":"Rest","loading":"R","notes":"Feet up. Prep bags. Early night.","pace":"None","title":"Rest + Carb load"},{"date":"2026-07-11","day":"Saturday","miles":62.1,"other":"","runType":"RACE","effort":"RACE","loading":"H","notes":"Race to the Stones 100km. Start slower than you think. Eat early. Walk hills. Keep stops brutally efficient.","pace":"None","title":"RACE"},{"date":"2026-07-12","day":"Sunday","miles":0,"other":"","runType":"Rest","effort":"Rest","loading":"R","notes":"Recovery walk only if you want it.","pace":"None","title":"Rest"}],"plannedMiles":74.1,"longRun":62.1,"focus":"Arrive healthy, calm and fuelled."}],"strength":[{"Session":"Daily activation","Exercise":"Side-lying hip abduction","Sets":2,"Reps / time":"12–15/side","Load guide":"Bodyweight","Notes":"Slow, pelvis stacked; feel side glute, not hip flexor.","Home option":"Mat","Gym option":"Cable hip abduction light"},{"Session":"Daily activation","Exercise":"Single-leg glute bridge","Sets":2,"Reps / time":"8–12/side","Load guide":"Bodyweight","Notes":"Pause at top. Stop if hamstring cramps dominate.","Home option":"Bench/mat","Gym option":"Hip thrust bench"},{"Session":"Daily activation","Exercise":"Side plank","Sets":2,"Reps / time":"20–45 sec/side","Load guide":"Bodyweight","Notes":"Add top-leg lift only if controlled.","Home option":"Mat","Gym option":"Mat"},{"Session":"S&C A","Exercise":"Bulgarian split squat","Sets":3,"Reps / time":"5–8/side","Load guide":"Moderate-heavy, 2 RIR","Notes":"Keep knee tracking over toes, no hip drop.","Home option":"DB + bench","Gym option":"DB or Smith"},{"Session":"S&C A","Exercise":"Dumbbell Romanian deadlift","Sets":3,"Reps / time":"6–8","Load guide":"Moderate-heavy, 2 RIR","Notes":"Posterior chain without wrecking quads.","Home option":"DBs","Gym option":"Barbell/DB"},{"Session":"S&C A","Exercise":"Step-down / controlled eccentric","Sets":3,"Reps / time":"6–10/side","Load guide":"Bodyweight to light DB","Notes":"Key for downhill and ITB control.","Home option":"Bench/step","Gym option":"Box"},{"Session":"S&C A","Exercise":"Standing calf raise","Sets":3,"Reps / time":"8–12","Load guide":"Heavy-ish","Notes":"Straight knee and bent knee variations across the week.","Home option":"DBs","Gym option":"Calf machine"},{"Session":"S&C B","Exercise":"Hip thrust or glute bridge","Sets":3,"Reps / time":"6–10","Load guide":"Moderate-heavy","Notes":"Glutes, not lower back.","Home option":"DB over hips","Gym option":"Barbell hip thrust"},{"Session":"S&C B","Exercise":"Single-leg RDL","Sets":3,"Reps / time":"6–8/side","Load guide":"Light-moderate","Notes":"Balance and hip control.","Home option":"DB","Gym option":"Cable/DB"},{"Session":"S&C B","Exercise":"Lat pulldown / pull-down","Sets":3,"Reps / time":"8–12","Load guide":"Moderate","Notes":"Useful for posture and pack carrying.","Home option":"Pulley","Gym option":"Lat pulldown"},{"Session":"S&C B","Exercise":"Dead bug / Swiss ball rollout","Sets":3,"Reps / time":"8–12","Load guide":"Controlled","Notes":"Core stiffness for late-race form.","Home option":"Ball/mat","Gym option":"Mat/cable"},{"Session":"Maintenance taper","Exercise":"Glute activation circuit","Sets":1,"Reps / time":"10–15 min","Load guide":"Easy","Notes":"Race-week only. No soreness allowed.","Home option":"Home","Gym option":"Gym optional"},{"Session":"What 'rehab' means in the weekly plan","Exercise":null,"Sets":null,"Reps / time":null,"Load guide":null,"Notes":null,"Home option":null,"Gym option":null},{"Session":"Rehab circuit","Exercise":"Side-lying hip abduction or cable hip abduction","Sets":2,"Reps / time":"12–15/side","Load guide":"Easy","Notes":"Slow control, side glute focus","Home option":"Mat or cable","Gym option":"Cable machine"},{"Session":"Rehab circuit","Exercise":"Single-leg glute bridge","Sets":2,"Reps / time":"8–12/side","Load guide":"Easy","Notes":"Pause at top, ribs down","Home option":"Mat/bench","Gym option":"Bench"},{"Session":"Rehab circuit","Exercise":"Side plank","Sets":2,"Reps / time":"20–45 sec/side","Load guide":"Easy/moderate","Notes":"Pelvis stacked, no twisting","Home option":"Mat","Gym option":"Mat"},{"Session":"Rehab circuit","Exercise":"Step-down from low step","Sets":2,"Reps / time":"6–10/side","Load guide":"Bodyweight","Notes":"Knee tracks cleanly, no hip drop","Home option":"Step/bench","Gym option":"Box"},{"Session":"Rehab circuit","Exercise":"Calf raise, straight and bent knee","Sets":2,"Reps / time":"10–15 each","Load guide":"Easy/moderate","Notes":"Useful for lower-leg durability","Home option":"DBs","Gym option":"Calf machine"},{"Session":"Mobility","Exercise":"TFL/glute/quad soft tissue + hip flexor stretch","Sets":1,"Reps / time":"5–8 min","Load guide":"Gentle","Notes":"Do not aggressively grind the IT band itself","Home option":"Foam roller/ball optional","Gym option":"Gym mat area"},{"Session":"When to do it","Exercise":"On days labelled Rehab, or after easy runs","Sets":null,"Reps / time":"10–15 min","Load guide":"No soreness","Notes":"This should make you feel better, not trained","Home option":"Home","Gym option":"Gym"},{"Session":"Pain rule","Exercise":"During or after rehab","Sets":null,"Reps / time":"0–2/10 ok","Load guide":"Stop if worsening","Notes":"If pain changes your gait, stop and protect the next 48 hours","Home option":null,"Gym option":null},{"Session":"Progression","Exercise":"Only add load when the ITB has been calm for a full week","Sets":null,"Reps / time":null,"Load guide":"Conservative","Notes":"Control before load","Home option":null,"Gym option":null},{"Session":"Not rehab","Exercise":"Heavy Bulgarian split squats, hard hill reps, tempo running","Sets":null,"Reps / time":null,"Load guide":null,"Notes":"Those are training stress, not rehab","Home option":null,"Gym option":null}],"fuel":[{"Topic":"Overall pace","Target":"Sub-12 = 11:35/mile including stops","Why it matters":"Stops are part of the clock.","Practice in training":"Use long runs to practise moving while eating.","Race-day rule":"Never bank time by overcooking the first 30km.","Notes":"With 45 min stopped, moving average needs about 10:52/mile."},{"Topic":"Carbs","Target":"Build to 70–90g/hour if gut tolerates","Why it matters":"100km is a fuelling event as much as a running event.","Practice in training":"Start 60g/h now, test 70–90g/h on peak weekends.","Race-day rule":"Eat from 20–30 min, do not wait for hunger.","Notes":"Mix gels, drink mix, bars/soft foods."},{"Topic":"Fluids","Target":"Drink to thirst, adjust for heat","Why it matters":"Over- and under-drinking both cause problems.","Practice in training":"Practise with the kit you will carry.","Race-day rule":"Checkpoint plan before arrival.","Notes":"Use electrolytes/salt mainly according to sweat and conditions."},{"Topic":"Run/walk","Target":"Walk climbs early","Why it matters":"Protects quads and ITB, keeps effort low.","Practice in training":"Use every long hilly run to rehearse it.","Race-day rule":"No shame hiking. Shame is surging early.","Notes":"Power-hike with intent, then run smoothly off the top."},{"Topic":"Stops","Target":"Planned, short, boring","Why it matters":"Sub-12 dies in casual checkpoints.","Practice in training":"Rehearse what you pick up and what you ignore.","Race-day rule":"In, refill, food, out.","Notes":"Have a checklist: bottles, carbs, salt, loo, go."},{"Topic":"ITB rule","Target":"Stable trainers, no carbon trigger in build","Why it matters":"Recent flare-up is the limiting risk.","Practice in training":"Every niggle gets logged after runs.","Race-day rule":"Pain >2/10 or gait change = stop.","Notes":"Better 5% undertrained than injured."}],"meta":{"plannedMiles":588.1,"event":"Race to the Stones 100km","raceDate":"2026-07-11"}}</script>
+<script>
+const DATA = JSON.parse(document.getElementById('planData').textContent);
+const STORE = 'rttsUltraTrackerProDark.v1';
+let state = loadState();
+const allDays = DATA.plan.flatMap(w => w.days.map(d => ({...d, week:w.week, phase:w.phase, focus:w.focus})));
+const strength = DATA.strength || [];
+const ACTIVATION = [
+  {name:'Glute bridge', detail:'10 slow reps, squeeze hard at the top'},
+  {name:'Side-lying hip abduction', detail:'8 each side, toes slightly down'},
+  {name:'Dead bug', detail:'6 each side, slow and controlled'},
+  {name:'Single-leg calf raise', detail:'8 each side, smooth full range'},
+  {name:'Bodyweight reverse lunge', detail:'5 each side, knee tracks cleanly'}
+];
+const bySession = strength
+  .filter(x => {
+    const ex = String(x.Exercise || '').trim();
+    const session = String(x.Session || '').trim();
+    if (!ex) return false;
+    if (ex.toLowerCase().includes("what 'rehab' means")) return false;
+    if (session.toLowerCase().includes("what 'rehab' means")) return false;
+    return true;
+  })
+  .reduce((acc,x) => {
+    const s = x.Session || 'Other';
+    (acc[s] ||= []).push(x);
+    return acc;
+  }, {});
+
+function loadState() {
+  try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch(e) { return {}; }
+}
+function saveState() {
+  localStorage.setItem(STORE, JSON.stringify(state));
+  updateStats();
+}
+function esc(v) { return String(v ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function slug(v) { return String(v || '').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
+function key(date,type) { return date + ':' + type; }
+function exKey(date,session,exercise) { return date + ':ex:' + slug(session) + ':' + slug(exercise); }
+function weightKey(date,session,exercise) { return date + ':weight:' + slug(session) + ':' + slug(exercise); }
+function noteKey(date) { return date + ':note'; }
+function actKey(date,name) { return date + ':activation:' + slug(name); }
+function painKey(date) { return date + ':pain'; }
+function dObj(s) { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function isoToday() { const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0'); }
+function dateBits(s) {
+  const d=dObj(s);
+  return {
+    dow:d.toLocaleDateString('en-GB',{weekday:'short'}),
+    day:d.getDate(),
+    mon:d.toLocaleDateString('en-GB',{month:'short'}),
+    full:d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})
+  };
+}
+function miles(v) { return Number(v || 0) ? Number(v).toFixed(Number(v)%1 ? 1 : 0) + ' mi' : '0 mi'; }
+function attr(v) { return JSON.stringify(String(v ?? '')); }
+
+function sessionClass(d) {
+  const txt = [d.title,d.runType,d.pace,d.notes,d.other].join(' ').toLowerCase();
+  if (txt.includes('long') || Number(d.miles||0) >= 14) return 'tag-long';
+  if (txt.includes('stride') || txt.includes('hill') || txt.includes('steady') || txt.includes('marathon') || txt.includes('pace')) return 'tag-speed';
+  if (txt.includes('rehab') || txt.includes('s&c') || txt.includes('strength')) return 'tag-rehab';
+  return 'tag-easy';
+}
+function coachingCue(d) {
+  const txt = [d.title,d.runType,d.pace,d.notes,d.other].join(' ').toLowerCase();
+  if (txt.includes('it band') || txt.includes('rehab')) return 'Quiet IT band beats heroic session.';
+  if (txt.includes('long') || Number(d.miles||0) >= 14) return 'Fuel early. Walk deliberately. Finish able to train tomorrow.';
+  if (txt.includes('stride') || txt.includes('hill')) return 'Fast-but-relaxed. This is economy, not a fitness test.';
+  if (txt.includes('rest')) return 'Absorb the work. Boring recovery is still training.';
+  return 'Bank the boring miles. Keep the effort controlled.';
+}
+function sessionsForDay(d) {
+  const txt = ((d.other||'')+' '+(d.title||'')+' '+(d.notes||'')).toLowerCase();
+  const out = [];
+  Object.keys(bySession).forEach(s => {
+    const sl = s.toLowerCase();
+    if (txt.includes(sl)) out.push(s);
+  });
+  if (txt.includes('rehab')) {
+    const match = Object.keys(bySession).find(s => s.toLowerCase().includes('rehab'));
+    if (match) out.push(match);
+  }
+  if (txt.includes('mobility')) {
+    const match = Object.keys(bySession).find(s => s.toLowerCase().includes('mobility'));
+    if (match) out.push(match);
+  }
+  return [...new Set(out)];
+}
+function weightedExercise(x) {
+  const text = [x.Exercise,x['Load guide'],x['Home option'],x['Gym option']].join(' ').toLowerCase();
+  if (text.includes('bodyweight') || text.includes('mobility') || text.includes('stretch') || text.includes('foam')) return false;
+  return ['dumbbell','db','kg','goblet','split squat','rdl','deadlift','hip thrust','glute bridge','step-up','step up','calf raise','row','pulldown','press','lunge','squat','curl','extension','loaded'].some(k => text.includes(k));
+}
+function exerciseProgress(d) {
+  let total=0, done=0;
+  sessionsForDay(d).forEach(s => (bySession[s] || []).forEach(x => {
+    total++;
+    if (state[exKey(d.date,s,x.Exercise)]) done++;
+  }));
+  return {total,done};
+}
+function activationProgress(date) {
+  let done = ACTIVATION.filter(x => state[actKey(date,x.name)]).length;
+  return {total: ACTIVATION.length, done};
+}
+
+function setDone(date,type,checked) {
+  if (checked) state[key(date,type)] = true; else delete state[key(date,type)];
+  saveState(); rerenderSoft();
+}
+function setExercise(date,session,exercise,checked) {
+  if (checked) state[exKey(date,session,exercise)] = true; else delete state[exKey(date,session,exercise)];
+  saveState(); rerenderSoft();
+}
+function setActivation(date,name,checked) {
+  if (checked) state[actKey(date,name)] = true; else delete state[actKey(date,name)];
+  saveState(); rerenderSoft();
+}
+function setWeight(date,session,exercise,val) {
+  const k = weightKey(date,session,exercise);
+  if (val !== '') state[k] = val; else delete state[k];
+  saveState();
+}
+function setNote(date,val) {
+  if (val.trim()) state[noteKey(date)] = val; else delete state[noteKey(date)];
+  saveState();
+}
+function setPain(date,val) {
+  state[painKey(date)] = val;
+  saveState(); rerenderSoft();
+}
+
+function painHTML(d) {
+  const val = state[painKey(d.date)] || '';
+  const mk = (v,label,cls) => `<button class="painBtn ${cls} ${val===v?'active':''}" onclick="setPain(${attr(d.date)},${attr(v)})">${label}</button>`;
+  return `<div class="painBox">
+    <div class="painTop"><b>IT band status</b><span class="meta">${val ? esc(val) : 'not set'}</span></div>
+    <div class="painBtns">
+      ${mk('0-1 fine','🟢 0–1 fine','good')}
+      ${mk('2-3 watch','🟡 2–3 watch','watch')}
+      ${mk('4+ stop','🔴 4+ stop','stop')}
+    </div>
+  </div>`;
+}
+function activationHTML(d) {
+  const prog = activationProgress(d.date);
+  return `<div class="activationBox">
+    <div class="activationHead"><b>Daily activation</b><span class="badge">${prog.done}/${prog.total} done</span></div>
+    <div class="activationSub">5–7 minutes. Easy, controlled, and tidy. This is the anti-IT-band wobble work.</div>
+    <div class="activationGrid">
+      ${ACTIVATION.map(x => {
+        const checked = state[actKey(d.date,x.name)] ? 'checked' : '';
+        return `<label class="activationRow">
+          <input type="checkbox" ${checked} onchange="setActivation(${attr(d.date)},${attr(x.name)},this.checked)">
+          <span>
+            <span class="activationTitle">${esc(x.name)}</span>
+            <span class="activationMeta">${esc(x.detail)}</span>
+          </span>
+        </label>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+function exerciseHTML(d) {
+  const sessions = sessionsForDay(d);
+  if (!sessions.length) return '';
+  const prog = exerciseProgress(d);
+  return `<div class="exBox">
+    <div class="exHead"><b>Strength / rehab checklist</b><span class="badge">${prog.done}/${prog.total} done</span></div>
+    ${sessions.map(session => `
+      <div class="sessionBlock">
+        <div class="sessionName">${esc(session)}</div>
+        ${(bySession[session] || []).map(x => {
+          const line = [x.Sets ? x.Sets + ' sets' : '', x['Reps / time'] || '', x['Load guide'] || ''].filter(Boolean).join(' • ');
+          const checked = state[exKey(d.date,session,x.Exercise)] ? 'checked' : '';
+          const w = state[weightKey(d.date,session,x.Exercise)] || '';
+          const wb = weightedExercise(x) ? `<label class="weight"><input type="number" inputmode="decimal" step="0.5" min="0" placeholder="kg" value="${esc(w)}" onchange="setWeight(${attr(d.date)},${attr(session)},${attr(x.Exercise)},this.value)"><span>kg</span></label>` : '';
+          return `<label class="exRow">
+            <input type="checkbox" ${checked} onchange="setExercise(${attr(d.date)},${attr(session)},${attr(x.Exercise)},this.checked)">
+            <span class="exText">
+              <span class="exTitle">${esc(x.Exercise)}</span>
+              <span class="exMeta">${esc(line)}</span>
+              ${x.Notes ? `<span class="exMeta">${esc(x.Notes)}</span>` : ''}
+            </span>
+            ${wb}
+          </label>`;
+        }).join('')}
+      </div>
+    `).join('')}
+  </div>`;
+}
+
+function dayCard(d, compact=false) {
+  const b = dateBits(d.date);
+  const isToday = d.date === isoToday();
+  const noRun = !Number(d.miles || 0) || String(d.runType || '').toLowerCase() === 'rest';
+  const sess = sessionsForDay(d);
+  const runChecked = state[key(d.date,'run')] ? 'checked' : '';
+  const otherChecked = state[key(d.date,'other')] ? 'checked' : '';
+  const note = state[noteKey(d.date)] || '';
+  const pace = d.pace && d.pace !== 'None' ? `<span class="pill tag-speed">⚡ ${esc(d.pace)}</span>` : '';
+  const tagClass = sessionClass(d);
+  return `<article class="card dayCard ${isToday ? 'todayMark' : ''}" data-date="${esc(d.date)}">
+    <div class="dayGrid">
+      <div class="dateBox"><span class="dow">${esc(b.dow)}</span><span class="num">${b.day}</span></div>
+      <div>
+        <div class="dayTop">
+          <div>
+            <p class="dayTitle">${esc(d.title || d.runType || 'Session')}</p>
+            <p class="meta">${esc(b.full)} • ${esc(d.week || '')} • ${esc(d.phase || '')}</p>
+          </div>
+          <span class="pill load ${esc(d.loading || 'R')}">${esc(d.loading || 'R')}</span>
+        </div>
+        <div class="pillRow">
+          <span class="pill ${tagClass}">🏃 ${miles(d.miles)}</span>
+          ${d.runType ? `<span class="pill ${tagClass}">${esc(d.runType)}</span>` : ''}
+          ${d.other ? `<span class="pill tag-rehab">💪 ${esc(d.other)}</span>` : ''}
+          ${pace}
+        </div>
+        <div class="priority"><b>Priority:</b> ${esc(coachingCue(d))}</div>
+        ${d.notes ? `<p class="detail">${esc(d.notes)}</p>` : ''}
+        <div class="todayChecklist">
+          <label class="check">
+            <input type="checkbox" ${runChecked} ${noRun ? 'disabled' : ''} onchange="setDone(${attr(d.date)},'run',this.checked)">
+            <span><span class="checkTitle">Run completed</span><span class="checkSub">${noRun ? 'No run planned' : esc(d.effort || 'Easy')}</span></span>
+          </label>
+          <label class="check">
+            <input type="checkbox" ${otherChecked} ${(!d.other && !sess.length) ? 'disabled' : ''} onchange="setDone(${attr(d.date)},'other',this.checked)">
+            <span><span class="checkTitle">Strength / rehab completed</span><span class="checkSub">${d.other ? esc(d.other) : (sess.length ? sess.map(esc).join(', ') : 'Nothing planned')}</span></span>
+          </label>
+        </div>
+        ${painHTML(d)}
+        ${activationHTML(d)}
+        ${exerciseHTML(d)}
+        <textarea placeholder="Notes, pain score, fuelling, shoes…" oninput="setNote(${attr(d.date)},this.value)">${esc(note)}</textarea>
+      </div>
+    </div>
+  </article>`;
+}
+
+function renderToday() {
+  const iso = isoToday();
+  const d = allDays.find(x => x.date === iso) || allDays.find(x => x.date > iso) || allDays[allDays.length-1];
+  document.getElementById('today').innerHTML = `
+    <div class="hero">
+      <h2>${d.date === iso ? 'Today' : 'Next session'}</h2>
+      <p>${esc(d.title || 'Session')} · ${miles(d.miles)} · ${esc(d.other || 'Daily activation')}</p>
+      <div class="goalStrip">
+        <div class="goal"><b>Sub-12</b><span>100km target including stops</span></div>
+        <div class="goal"><b>11:35/mi</b><span>average required overall</span></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><b id="daysDone">0</b><span>days started</span></div>
+        <div class="stat"><b id="milesDone">0</b><span>miles ticked</span></div>
+        <div class="stat"><b id="actDone">0</b><span>activation ticks</span></div>
+        <div class="stat"><b id="exDone">0</b><span>strength ticks</span></div>
+      </div>
+      <div class="progressTrack"><div id="progressFill" class="progressFill"></div></div>
+    </div>
+    ${dayCard(d)}
+  `;
+  updateStats();
+}
+
+function weekStats(days) {
+  const started = days.filter(d => state[key(d.date,'run')] || state[key(d.date,'other')] || exerciseProgress(d).done || activationProgress(d.date).done).length;
+  const runMiles = days.reduce((s,d) => s + (state[key(d.date,'run')] ? Number(d.miles || 0) : 0), 0);
+  const actDone = days.reduce((s,d) => s + activationProgress(d.date).done, 0);
+  const actTotal = days.length * ACTIVATION.length;
+  return {started,runMiles,actDone,actTotal};
+}
+function renderWeeks(filter='') {
+  const q = filter.trim().toLowerCase();
+  const html = DATA.plan.map((w,idx) => {
+    const days = w.days.map(d => ({...d, week:w.week, phase:w.phase, focus:w.focus}))
+      .filter(d => !q || JSON.stringify(d).toLowerCase().includes(q) || String(w.week).toLowerCase().includes(q) || String(w.phase).toLowerCase().includes(q));
+    if (!days.length) return '';
+    const st = weekStats(days);
+    const isCurrent = days.some(d => d.date === isoToday());
+    return `<section class="card week ${isCurrent ? 'open' : ''}" id="week-${idx}">
+      <div class="weekHead">
+        <div>
+          <h2 class="weekTitle">${esc(w.week)}</h2>
+          <p class="meta">${esc(w.phase || '')} • starts ${dObj(w.start).toLocaleDateString('en-GB',{day:'numeric',month:'short'})} • ${w.plannedMiles || w.totalMiles || 0} miles planned</p>
+        </div>
+        <button class="btn" onclick="toggleWeek(${idx})">Open</button>
+      </div>
+      <div class="weekMiniStats">
+        <div class="mini"><b>${st.started}/${days.length}</b><span>days started</span></div>
+        <div class="mini"><b>${Math.round(st.runMiles)}</b><span>miles ticked</span></div>
+        <div class="mini"><b>${st.actDone}/${st.actTotal}</b><span>activation</span></div>
+      </div>
+      <div class="pillRow">
+        <span class="pill tag-long">Long: ${w.longRun || '—'} mi</span>
+        <span class="pill tag-rehab">${esc(w.phase || '')}</span>
+      </div>
+      <p class="detail"><b>Focus:</b> ${esc(w.focus || w.objectives?.Fitness || '')}</p>
+      <div class="weekDays">${days.map(d => dayCard(d,true)).join('')}</div>
+    </section>`;
+  }).join('');
+  document.getElementById('weeks').innerHTML = html || '<div class="empty">No matching sessions.</div>';
+  updateStats();
+}
+function toggleWeek(i) {
+  document.getElementById('week-'+i)?.classList.toggle('open');
+}
+
+function renderLibrary() {
+  const groups = Object.entries(bySession)
+    .filter(([name,items]) => !String(name || '').toLowerCase().includes("what 'rehab' means"))
+    .map(([name,items]) => `
+    <div class="card">
+      <h2 class="weekTitle">${esc(name)}</h2>
+      ${items.map(x => `
+        <div class="libraryItem">
+          <b>${esc(x.Exercise)}</b>
+          <p>${esc([x.Sets ? x.Sets + ' sets' : '', x['Reps / time'] || '', x['Load guide'] || ''].filter(Boolean).join(' • '))}</p>
+          ${x.Notes ? `<p>${esc(x.Notes)}</p>` : ''}
+          <p><b>Home:</b> ${esc(x['Home option'] || '')} &nbsp; <b>Gym:</b> ${esc(x['Gym option'] || '')}</p>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+  const activation = `<div class="card">
+    <h2 class="weekTitle">Daily activation</h2>
+    ${ACTIVATION.map(x => `<div class="libraryItem"><b>${esc(x.name)}</b><p>${esc(x.detail)}</p></div>`).join('')}
+  </div>`;
+  const fuel = (DATA.fuel || []).map(x => `
+    <div class="card">
+      <h2 class="weekTitle">${esc(x.Topic || '')}</h2>
+      <div class="pillRow"><span class="pill tag-long">${esc(x.Target || '')}</span></div>
+      <p class="detail"><b>Why:</b> ${esc(x['Why it matters'] || '')}</p>
+      <p class="detail"><b>Training:</b> ${esc(x['Practice in training'] || '')}</p>
+      <p class="detail"><b>Race rule:</b> ${esc(x['Race-day rule'] || '')}</p>
+    </div>
+  `).join('');
+  document.getElementById('libraryContent').innerHTML = activation + groups + fuel;
+}
+
+function updateStats() {
+  const daysStarted = allDays.filter(d => state[key(d.date,'run')] || state[key(d.date,'other')] || exerciseProgress(d).done || activationProgress(d.date).done).length;
+  const milesDone = allDays.reduce((s,d) => s + (state[key(d.date,'run')] ? Number(d.miles || 0) : 0), 0);
+  const exTotal = allDays.reduce((s,d) => s + exerciseProgress(d).total, 0);
+  const exDone = allDays.reduce((s,d) => s + exerciseProgress(d).done, 0);
+  const actTotal = allDays.length * ACTIVATION.length;
+  const actDone = allDays.reduce((s,d) => s + activationProgress(d.date).done, 0);
+  const race = dObj(DATA.meta?.raceDate || '2026-07-11');
+  const n = new Date();
+  const today = new Date(n.getFullYear(),n.getMonth(),n.getDate());
+  const toRace = Math.max(0, Math.ceil((race - today) / 86400000));
+  const pct = allDays.length ? Math.min(100, Math.round((daysStarted / allDays.length) * 100)) : 0;
+
+  ['daysDone','pDays'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent = daysStarted; });
+  ['milesDone','pMiles'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent = Math.round(milesDone); });
+  ['exDone','pExercises'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent = exDone + '/' + exTotal; });
+  ['actDone','pActivation'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent = actDone + '/' + actTotal; });
+  ['topCountdown'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent = toRace; });
+  ['progressFill','pFill'].forEach(id => { const el=document.getElementById(id); if(el) el.style.width = pct + '%'; });
+}
+
+function showTab(id) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+  document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id === id));
+  if (id === 'today') renderToday();
+  if (id === 'plan') renderWeeks(document.getElementById('search').value);
+  if (id === 'strength') renderLibrary();
+  if (id === 'progress') updateStats();
+}
+function rerenderSoft() {
+  const active = document.querySelector('.section.active')?.id;
+  if (active === 'today') renderToday();
+  if (active === 'plan') renderWeeks(document.getElementById('search').value);
+  if (active === 'progress') updateStats();
+}
+function jumpToday() {
+  showTab('plan');
+  setTimeout(() => {
+    const el = document.querySelector(`[data-date="${isoToday()}"]`);
+    if (el) {
+      el.closest('.week')?.classList.add('open');
+      el.scrollIntoView({behavior:'smooth', block:'center'});
+    }
+  }, 80);
+}
+function exportProgress() {
+  const blob = new Blob([JSON.stringify({ exported:new Date().toISOString(), progress:state }, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'rtts-progress-backup.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+document.getElementById('search').addEventListener('input', e => renderWeeks(e.target.value));
+renderToday();
+updateStats();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
