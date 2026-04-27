@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>RTTS Ultra Tracker</title>
+<!-- ACTIVATION_CLICK_FIX_V4 -->
 <meta name="theme-color" content="#050505">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -718,6 +719,46 @@ textarea:focus,.search:focus,.weight input:focus {
   .dateBox { height:66px; }
   .sub { max-width:480px; }
 }
+
+.activationToggle {
+  width:100%;
+  background:transparent;
+  color:inherit;
+  border:0;
+  text-align:left;
+  cursor:pointer;
+  user-select:none;
+}
+
+.fakeCheck {
+  width:34px;
+  height:34px;
+  border-radius:10px;
+  border:1px solid #30333a;
+  background:#111216;
+  color:transparent;
+  display:grid;
+  place-items:center;
+  flex:0 0 auto;
+  font-size:24px;
+  font-weight:1000;
+  line-height:1;
+}
+
+.activationToggle.isDone .fakeCheck {
+  background:var(--cyan);
+  color:#050505;
+  border-color:var(--cyan);
+}
+
+.activationToggle.isDone .activationTitle {
+  color:var(--text);
+}
+
+.activationToggle.isDone .activationMeta {
+  color:var(--muted);
+}
+
 </style>
 </head>
 
@@ -789,7 +830,7 @@ textarea:focus,.search:focus,.weight input:focus {
 
 <script>
 const DATA = JSON.parse(document.getElementById('planData').textContent);
-const STORE = 'rttsUltraTrackerCleanFinal.v3';
+const STORE = 'rttsUltraTrackerCleanFinal.v4';
 let state = loadState();
 
 const allDays = DATA.plan.flatMap(w => w.days.map(d => ({...d, week:w.week, phase:w.phase, focus:w.focus})));
@@ -1012,20 +1053,20 @@ function painHTML(d) {
 function activationHTML(d) {
   const prog = activationProgress(d.date);
 
-  return `<div class="activationBox">
+  return `<div class="activationBox" data-activation-date="${esc(d.date)}">
     <div class="activationHead"><b>Daily activation</b><span class="badge">${prog.done}/${prog.total} done</span></div>
     <div class="activationSub">5–7 minutes. Easy, controlled, and tidy. This is the anti-IT-band wobble work.</div>
     <div class="activationGrid">
       ${ACTIVATION.map(x => {
         const done = !!state[actKey(d.date,x.name)];
 
-        return `<button type="button" class="activationRow activationToggle ${done ? 'isDone' : ''}" onclick="toggleActivation(${attr(d.date)},${attr(x.name)})">
+        return `<div role="button" tabindex="0" class="activationRow activationToggle ${done ? 'isDone' : ''}" data-date="${esc(d.date)}" data-name="${esc(x.name)}">
           <span class="fakeCheck">${done ? '✓' : ''}</span>
           <span>
             <span class="activationTitle">${esc(x.name)}</span>
             <span class="activationMeta">${esc(x.detail)}</span>
           </span>
-        </button>`;
+        </div>`;
       }).join('')}
     </div>
   </div>`;
@@ -1300,6 +1341,35 @@ function exportProgress() {
 }
 
 document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+
+document.addEventListener('click', function(e) {
+  const row = e.target.closest('.activationToggle');
+  if (!row) return;
+
+  const date = row.dataset.date;
+  const name = row.dataset.name;
+
+  if (!date || !name) return;
+
+  toggleActivation(date, name);
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+
+  const row = e.target.closest('.activationToggle');
+  if (!row) return;
+
+  e.preventDefault();
+
+  const date = row.dataset.date;
+  const name = row.dataset.name;
+
+  if (!date || !name) return;
+
+  toggleActivation(date, name);
+});
+
 document.getElementById('search').addEventListener('input', e => renderWeeks(e.target.value));
 
 renderToday();
