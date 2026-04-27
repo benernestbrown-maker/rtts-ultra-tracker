@@ -455,6 +455,45 @@ h1 {
 }
 .activationRow:first-child { border-top:0; }
 .activationRow input[type=checkbox] { accent-color:var(--cyan); }
+
+.activationToggle {
+  width:100%;
+  background:transparent;
+  color:inherit;
+  border:0;
+  text-align:left;
+  cursor:pointer;
+}
+
+.fakeCheck {
+  width:34px;
+  height:34px;
+  border-radius:10px;
+  border:1px solid #30333a;
+  background:#111216;
+  color:transparent;
+  display:grid;
+  place-items:center;
+  flex:0 0 auto;
+  font-size:24px;
+  font-weight:1000;
+  line-height:1;
+}
+
+.activationToggle.isDone .fakeCheck {
+  background:var(--cyan);
+  color:#050505;
+  border-color:var(--cyan);
+}
+
+.activationToggle.isDone .activationTitle {
+  color:var(--text);
+}
+
+.activationToggle.isDone .activationMeta {
+  color:var(--muted);
+}
+
 .activationTitle,.exTitle {
   display:block;
   font-size:13px;
@@ -750,7 +789,7 @@ textarea:focus,.search:focus,.weight input:focus {
 
 <script>
 const DATA = JSON.parse(document.getElementById('planData').textContent);
-const STORE = 'rttsUltraTrackerCleanFinal.v1';
+const STORE = 'rttsUltraTrackerCleanFinal.v3';
 let state = loadState();
 
 const allDays = DATA.plan.flatMap(w => w.days.map(d => ({...d, week:w.week, phase:w.phase, focus:w.focus})));
@@ -924,9 +963,15 @@ function setExercise(date,session,exercise,checked) {
   rerenderSoft();
 }
 
-function setActivation(date,name,checked) {
-  if (checked) state[actKey(date,name)] = true;
-  else delete state[actKey(date,name)];
+function toggleActivation(date,name) {
+  const k = actKey(date,name);
+
+  if (state[k]) {
+    delete state[k];
+  } else {
+    state[k] = true;
+  }
+
   saveState();
   rerenderSoft();
 }
@@ -972,14 +1017,15 @@ function activationHTML(d) {
     <div class="activationSub">5–7 minutes. Easy, controlled, and tidy. This is the anti-IT-band wobble work.</div>
     <div class="activationGrid">
       ${ACTIVATION.map(x => {
-        const checked = state[actKey(d.date,x.name)] ? 'checked' : '';
-        return `<label class="activationRow">
-          <input type="checkbox" ${checked} onchange="setActivation(${attr(d.date)},${attr(x.name)},this.checked)">
+        const done = !!state[actKey(d.date,x.name)];
+
+        return `<button type="button" class="activationRow activationToggle ${done ? 'isDone' : ''}" onclick="toggleActivation(${attr(d.date)},${attr(x.name)})">
+          <span class="fakeCheck">${done ? '✓' : ''}</span>
           <span>
             <span class="activationTitle">${esc(x.name)}</span>
             <span class="activationMeta">${esc(x.detail)}</span>
           </span>
-        </label>`;
+        </button>`;
       }).join('')}
     </div>
   </div>`;
