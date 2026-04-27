@@ -1019,6 +1019,68 @@ textarea:focus,.search:focus,.weight input:focus{
   justify-content:flex-start;
 }
 
+
+/* === COMPACT DAY CARD LAYOUT V7 === */
+.dayShell{
+  display:block;
+  padding:14px;
+}
+
+.dayHeaderGrid{
+  display:grid;
+  grid-template-columns:58px 1fr;
+  gap:12px;
+  align-items:start;
+}
+
+.dayBody{
+  margin-top:12px;
+}
+
+.dateBox{
+  width:58px;
+  height:66px;
+}
+
+.dayHead{
+  min-width:0;
+}
+
+.dayTitle{
+  font-size:27px;
+}
+
+.priority,
+.detail,
+.trackGrid,
+.block,
+textarea{
+  margin-left:0;
+}
+
+@media(min-width:760px){
+  .dayHeaderGrid{
+    grid-template-columns:64px 1fr;
+  }
+  .dateBox{
+    width:64px;
+    height:72px;
+  }
+}
+
+
+/* === RESTORE TODAY NOTE FUNCTIONAL CSS V8 === */
+.todayNote{
+  margin-top:0;
+  padding:14px;
+  border-radius:20px;
+  border:1px solid rgba(166,120,255,.22);
+  background:rgba(166,120,255,.07);
+  color:var(--soft);
+  font-size:12px;
+  line-height:1.45;
+}
+
 </style>
 </head>
 
@@ -1094,7 +1156,7 @@ textarea:focus,.search:focus,.weight input:focus{
 
 <script>
 const DATA = JSON.parse(document.getElementById('planData').textContent);
-const STORE = 'rttsUltraTrackerDashboardRewrite.v6';
+const STORE = 'rttsUltraTrackerDashboardRewrite.v8';
 let state = loadState();
 
 const allDays = (() => {
@@ -1261,22 +1323,31 @@ function dayCard(d){
   const note=state[noteKey(d.date)] || '';
   const tag=sessionClass(d);
   const pace=d.pace && d.pace !== 'None' ? `<span class="pill tag-speed">⚡ ${esc(d.pace)}</span>` : '';
+
   return `<article class="panel dayCard ${isToday ? 'todayMark' : ''}" data-date="${esc(d.date)}">
     <div class="dayShell">
-      <div class="dateBox"><span class="dow">${esc(b.dow)}</span><span class="num">${b.day}</span></div>
-      <div>
+      <div class="dayHeaderGrid">
+        <div class="dateBox"><span class="dow">${esc(b.dow)}</span><span class="num">${b.day}</span></div>
         <div class="dayHead">
-          <div><p class="dayTitle">${esc(d.title || d.runType || 'Session')}</p><p class="meta">${esc(b.full)} · ${esc(d.week||'')} · ${esc(d.phase||'')}</p></div>
+          <div>
+            <p class="dayTitle">${esc(d.title || d.runType || 'Session')}</p>
+            <p class="meta">${esc(b.full)} · ${esc(d.week||'')} · ${esc(d.phase||'')}</p>
+          </div>
           <span class="pill load ${esc(d.loading || 'R')}">${esc(d.loading || 'R')}</span>
         </div>
+      </div>
+
+      <div class="dayBody">
         <div class="pills">
           <span class="pill ${tag}">🏃 ${miles(d.miles)}</span>
           ${d.runType ? `<span class="pill ${tag}">${esc(d.runType)}</span>` : ''}
           ${d.other ? `<span class="pill tag-rehab">💪 ${esc(d.other)}</span>` : ''}
           ${pace}
         </div>
+
         <div class="priority"><b>Priority</b>${esc(coachingCue(d))}</div>
         ${d.notes ? `<p class="detail">${esc(d.notes)}</p>` : ''}
+
         <div class="trackGrid">
           <label class="trackRow">
             <input class="nativeCheck" type="checkbox" ${runChecked} ${noRun ? 'disabled' : ''} data-action="run" data-date="${esc(d.date)}">
@@ -1287,6 +1358,7 @@ function dayCard(d){
             <span><span class="trackTitle">Scheduled strength / rehab completed</span><span class="trackSub">${d.other ? esc(d.other) : (sess.length ? sess.map(esc).join(', ') : 'Nothing planned')}</span></span>
           </label>
         </div>
+
         ${painHTML(d)}
         ${activationHTML(d)}
         ${exerciseHTML(d)}
@@ -1310,7 +1382,6 @@ function todayNoteHTML(d){
 
   return `<div class="todayNote">Keep the effort matched to the plan. The detailed run, activation, IT band and scheduled strength controls are on the session card below.</div>`;
 }
-
 
 function renderToday(){
   const iso=isoToday();
