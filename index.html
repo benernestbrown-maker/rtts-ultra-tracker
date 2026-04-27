@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>RTTS Ultra Tracker</title>
-<!-- ACTIVATION_CLICK_FIX_V4 -->
+<!-- ACTIVATION_CLICK_FIX_V5_UNIQUE_DATES -->
 <meta name="theme-color" content="#050505">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -830,10 +830,14 @@ textarea:focus,.search:focus,.weight input:focus {
 
 <script>
 const DATA = JSON.parse(document.getElementById('planData').textContent);
-const STORE = 'rttsUltraTrackerCleanFinal.v4';
+const STORE = 'rttsUltraTrackerCleanFinal.v5';
 let state = loadState();
 
 const allDays = DATA.plan.flatMap(w => w.days.map(d => ({...d, week:w.week, phase:w.phase, focus:w.focus})));
+
+// Some dates exist in more than one plan section because of the initial reset/week overlap.
+// Global progress must count each calendar date once only.
+const uniqueDays = Array.from(new Map(allDays.map(d => [d.date, d])).values());
 const strength = DATA.strength || [];
 
 // Daily activation is intentionally separate.
@@ -1280,18 +1284,28 @@ function renderLibrary() {
 }
 
 function updateStats() {
-  const daysStarted = allDays.filter(d => state[key(d.date,'run')] || state[key(d.date,'other')] || exerciseProgress(d).done || activationProgress(d.date).done).length;
-  const milesDone = allDays.reduce((s,d) => s + (state[key(d.date,'run')] ? Number(d.miles || 0) : 0), 0);
-  const exTotal = allDays.reduce((s,d) => s + exerciseProgress(d).total, 0);
-  const exDone = allDays.reduce((s,d) => s + exerciseProgress(d).done, 0);
-  const actTotal = allDays.length * ACTIVATION.length;
-  const actDone = allDays.reduce((s,d) => s + activationProgress(d.date).done, 0);
+  const daysStarted = uniqueDays.filter(d =>
+    state[key(d.date,'run')] ||
+    state[key(d.date,'other')] ||
+    exerciseProgress(d).done ||
+    activationProgress(d.date).done
+  ).length;
+
+  const milesDone = uniqueDays.reduce((s,d) =>
+    s + (state[key(d.date,'run')] ? Number(d.miles || 0) : 0), 0
+  );
+
+  const exTotal = uniqueDays.reduce((s,d) => s + exerciseProgress(d).total, 0);
+  const exDone = uniqueDays.reduce((s,d) => s + exerciseProgress(d).done, 0);
+
+  const actTotal = uniqueDays.length * ACTIVATION.length;
+  const actDone = uniqueDays.reduce((s,d) => s + activationProgress(d.date).done, 0);
 
   const race = dObj(DATA.meta?.raceDate || '2026-07-11');
   const n = new Date();
   const today = new Date(n.getFullYear(),n.getMonth(),n.getDate());
   const toRace = Math.max(0, Math.ceil((race - today) / 86400000));
-  const pct = allDays.length ? Math.min(100, Math.round((daysStarted / allDays.length) * 100)) : 0;
+  const pct = uniqueDays.length ? Math.min(100, Math.round((daysStarted / uniqueDays.length) * 100)) : 0;
 
   ['daysDone','pDays'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = daysStarted; });
   ['milesDone','pMiles'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = Math.round(milesDone); });
