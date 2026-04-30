@@ -1081,6 +1081,22 @@ textarea{
   line-height:1.45;
 }
 
+
+/* === PHYSIO NO-RUN BLOCK V9 === */
+.physioBanner{
+  margin-top:12px;
+  padding:13px 14px;
+  border-radius:20px;
+  border:1px solid rgba(255,138,34,.26);
+  background:rgba(255,138,34,.075);
+  color:var(--soft);
+  font-size:12px;
+  line-height:1.45;
+}
+.physioBanner b{
+  color:var(--ink);
+}
+
 </style>
 </head>
 
@@ -1156,7 +1172,7 @@ textarea{
 
 <script>
 const DATA = JSON.parse(document.getElementById('planData').textContent);
-const STORE = 'rttsUltraTrackerDashboardRewrite.v8';
+const STORE = 'rttsUltraTrackerDashboardRewrite.v9';
 let state = loadState();
 
 const allDays = (() => {
@@ -1211,6 +1227,76 @@ function dateBits(s){
 }
 function miles(v){return Number(v || 0) ? Number(v).toFixed(Number(v)%1 ? 1 : 0) + ' mi' : '0 mi'}
 function attr(v){return JSON.stringify(String(v ?? ''))}
+
+const PHYSIO_NO_RUN_START = '2026-04-29';
+const PHYSIO_NO_RUN_END = '2026-05-12';
+
+function addDaysIso(iso, days){
+  const d = dObj(iso);
+  d.setDate(d.getDate() + days);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function inIsoRange(date, start, end){
+  return date >= start && date <= end;
+}
+
+function physioNoRun(date){
+  return inIsoRange(date, PHYSIO_NO_RUN_START, PHYSIO_NO_RUN_END);
+}
+
+function itbAutoNoRun(date){
+  return Object.entries(state).some(([k,v]) => {
+    if (!k.endsWith(':pain') || v !== '4+ stop') return false;
+    const painDate = k.slice(0,10);
+    const blockStart = addDaysIso(painDate, 1);
+    const blockEnd = addDaysIso(painDate, 2);
+    return inIsoRange(date, blockStart, blockEnd);
+  });
+}
+
+function noRunReason(date){
+  if (physioNoRun(date)) return 'physio';
+  if (itbAutoNoRun(date)) return 'itb48';
+  return '';
+}
+
+function effectiveDay(day){
+  const reason = noRunReason(day.date);
+  if (!reason) return day;
+
+  const hadRun = Number(day.miles || 0) > 0 && String(day.runType || '').toLowerCase() !== 'rest';
+  const originalMiles = Number(day.miles || 0);
+  const existingOther = String(day.other || '').trim();
+
+  const base = {
+    ...day,
+    _blockedReason: reason,
+    _originalMiles: originalMiles,
+    _originalRunType: day.runType || '',
+    miles: 0,
+    runType: 'No running',
+    effort: reason === 'physio' ? 'Physio-directed no-run block' : '48-hour ITB reset',
+    title: hadRun ? 'No running + cross-training' : (day.title || 'No running'),
+    other: existingOther ? `${existingOther} + cross-training` : 'Cross-training + daily activation'
+  };
+
+  if (reason === 'physio') {
+    base.notes = hadRun
+      ? `Physio-advised no running. Replace the planned ${originalMiles || ''} mi run with easy low-impact cross-training if symptoms allow. Keep strength, rehab, mobility and daily activation going.`
+      : 'Physio-advised no running. Keep strength, rehab, mobility, easy walking and daily activation going.';
+  }
+
+  if (reason === 'itb48') {
+    base.notes = hadRun
+      ? `IT band was rated 4+ in the previous 48 hours. Replace the planned ${originalMiles || ''} mi run with easy low-impact cross-training only if comfortable. Keep strength/rehab/mobility work controlled.`
+      : 'IT band was rated 4+ in the previous 48 hours. No running today. Keep only controlled rehab, mobility and easy cross-training if comfortable.';
+  }
+
+  return base;
+}
+
+
 
 function sessionClass(d){
   const txt=[d.title,d.runType,d.pace,d.notes,d.other].join(' ').toLowerCase();
@@ -1314,6 +1400,7 @@ function exerciseHTML(d){
   </div>`;
 }
 function dayCard(d){
+  d = effectiveDay(d);
   const b=dateBits(d.date);
   const isToday=d.date===isoToday();
   const noRun=!Number(d.miles||0) || String(d.runType||'').toLowerCase()==='rest';
@@ -1345,6 +1432,7 @@ function dayCard(d){
           ${pace}
         </div>
 
+        ${d._blockedReason ? `<div class="physioBanner"><b>${d._blockedReason === 'physio' ? 'Physio no-run block' : '48-hour ITB no-run block'}:</b> running removed, keep non-running work controlled.</div>` : ''}
         <div class="priority"><b>Priority</b>${esc(coachingCue(d))}</div>
         ${d.notes ? `<p class="detail">${esc(d.notes)}</p>` : ''}
 
@@ -1372,6 +1460,14 @@ function dayCard(d){
 function todayNoteHTML(d){
   const txt = ((d.other||'') + ' ' + (d.title||'') + ' ' + (d.notes||'')).toLowerCase();
 
+  if (d._blockedReason === 'physio') {
+    return `<div class="todayNote">Physio no-run block is active. This is day ${Math.max(1, Math.min(14, Math.floor((dObj(d.date) - dObj(PHYSIO_NO_RUN_START)) / 86400000) + 1))} of 14. Replace running with easy low-impact cross-training if comfortable, and keep strength, rehab, mobility and activation going.</div>`;
+  }
+
+  if (d._blockedReason === 'itb48') {
+    return `<div class="todayNote">IT band 4+ rule is active. Running is removed for the next 48 hours. Keep the non-running work controlled, and use easy cross-training only if it does not increase symptoms.</div>`;
+  }
+
   if (txt.includes('mobility')) {
     return `<div class="todayNote">Mobility means gentle hip flexor stretch, glute stretch, quad/TFL soft-tissue work if useful, and easy range-of-motion work. It is not a hard foam-rolling session, and you should not aggressively roll directly up and down the IT band.</div>`;
   }
@@ -1385,7 +1481,8 @@ function todayNoteHTML(d){
 
 function renderToday(){
   const iso=isoToday();
-  const d=allDays.find(x => x.date===iso) || allDays.find(x => x.date > iso) || allDays[allDays.length-1];
+  const rawDay=allDays.find(x => x.date===iso) || allDays.find(x => x.date > iso) || allDays[allDays.length-1];
+  const d=effectiveDay(rawDay);
   const act=activationProgress(d.date);
   const ex=exerciseProgress(d);
   const distance=miles(d.miles);
@@ -1434,10 +1531,11 @@ function renderToday(){
   updateStats();
 }
 function weekStats(days){
-  const started=days.filter(d => state[key(d.date,'run')] || state[key(d.date,'other')] || exerciseProgress(d).done || activationProgress(d.date).done).length;
-  const runMiles=days.reduce((s,d) => s + (state[key(d.date,'run')] ? Number(d.miles || 0) : 0), 0);
-  const actDone=days.reduce((s,d) => s + activationProgress(d.date).done, 0);
-  const actTotal=days.length * ACTIVATION.length;
+  const effectiveDays = days.map(effectiveDay);
+  const started=effectiveDays.filter(d => state[key(d.date,'run')] || state[key(d.date,'other')] || exerciseProgress(d).done || activationProgress(d.date).done).length;
+  const runMiles=effectiveDays.reduce((s,d) => s + (state[key(d.date,'run')] ? Number(d.miles || 0) : 0), 0);
+  const actDone=effectiveDays.reduce((s,d) => s + activationProgress(d.date).done, 0);
+  const actTotal=effectiveDays.length * ACTIVATION.length;
   return {started,runMiles,actDone,actTotal};
 }
 function renderWeeks(filter=''){
@@ -1447,7 +1545,7 @@ function renderWeeks(filter=''){
     if(!days.length) return '';
     const st=weekStats(days);
     const isCurrent=days.some(d => d.date===isoToday());
-    return `<section class="panel week ${isCurrent ? 'open' : ''}" id="week-${idx}">
+    return `<section class="panel week" id="week-${idx}">
       <div class="weekHead"><div><h2 class="weekTitle">${esc(w.week)}</h2><p class="meta">${esc(w.phase||'')} · starts ${dObj(w.start).toLocaleDateString('en-GB',{day:'numeric',month:'short'})} · ${w.plannedMiles || w.totalMiles || 0} miles planned</p></div><button class="btn" data-action="week" data-week="${idx}">Open</button></div>
       <div class="weekStats"><div class="mini"><b>${st.started}/${days.length}</b><span>Days started</span></div><div class="mini"><b>${Math.round(st.runMiles)}</b><span>Miles ticked</span></div><div class="mini"><b>${st.actDone}/${st.actTotal}</b><span>Activation</span></div></div>
       <div class="pills"><span class="pill tag-long">Long: ${w.longRun || '—'} mi</span><span class="pill tag-rehab">${esc(w.phase || '')}</span></div>
@@ -1465,17 +1563,18 @@ function renderLibrary(){
   document.getElementById('libraryContent').innerHTML=activation + groups + fuel;
 }
 function updateStats(){
-  const daysStarted=allDays.filter(d => state[key(d.date,'run')] || state[key(d.date,'other')] || exerciseProgress(d).done || activationProgress(d.date).done).length;
-  const milesDone=allDays.reduce((s,d) => s + (state[key(d.date,'run')] ? Number(d.miles || 0) : 0), 0);
-  const exTotal=allDays.reduce((s,d) => s + exerciseProgress(d).total, 0);
-  const exDone=allDays.reduce((s,d) => s + exerciseProgress(d).done, 0);
-  const actTotal=allDays.length * ACTIVATION.length;
-  const actDone=allDays.reduce((s,d) => s + activationProgress(d.date).done, 0);
+  const effectiveDays = allDays.map(effectiveDay);
+  const daysStarted=effectiveDays.filter(d => state[key(d.date,'run')] || state[key(d.date,'other')] || exerciseProgress(d).done || activationProgress(d.date).done).length;
+  const milesDone=effectiveDays.reduce((s,d) => s + (state[key(d.date,'run')] ? Number(d.miles || 0) : 0), 0);
+  const exTotal=effectiveDays.reduce((s,d) => s + exerciseProgress(d).total, 0);
+  const exDone=effectiveDays.reduce((s,d) => s + exerciseProgress(d).done, 0);
+  const actTotal=effectiveDays.length * ACTIVATION.length;
+  const actDone=effectiveDays.reduce((s,d) => s + activationProgress(d.date).done, 0);
   const race=dObj(DATA.meta?.raceDate || '2026-07-11');
   const n=new Date();
   const today=new Date(n.getFullYear(),n.getMonth(),n.getDate());
   const toRace=Math.max(0, Math.ceil((race - today) / 86400000));
-  const pct=allDays.length ? Math.min(100, Math.round((daysStarted / allDays.length) * 100)) : 0;
+  const pct=effectiveDays.length ? Math.min(100, Math.round((daysStarted / effectiveDays.length) * 100)) : 0;
   ['daysDone','pDays'].forEach(id => {const el=document.getElementById(id); if(el) el.textContent=daysStarted});
   ['milesDone','pMiles'].forEach(id => {const el=document.getElementById(id); if(el) el.textContent=Math.round(milesDone)});
   ['exDone','pExercises'].forEach(id => {const el=document.getElementById(id); if(el) el.textContent=exDone + '/' + exTotal});
