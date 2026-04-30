@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>RTTS Ultra Tracker</title>
+<!-- BACKUP_DIRECT_V13 -->
 <!-- BACKUP_MODAL_V12 -->
 <!-- PHYSIO_STRENGTH_RESTORED_V11 -->
 <!-- PLAN_OPEN_STATE_FIX_V10 -->
@@ -1168,6 +1169,12 @@ textarea{
   line-height:1.4;
 }
 
+
+/* === BACKUP DIRECT FALLBACK V13 === */
+.backupInlinePanel .backupText{
+  min-height:240px;
+}
+
 </style>
 </head>
 
@@ -1221,9 +1228,21 @@ textarea{
       <div class="progressTrack"><div id="pFill" class="progressFill"></div></div>
       <div class="toolbar">
         <button class="btn primary" data-action="jump-today">Today</button>
-        <button class="btn" data-action="export">Backup</button>
+        <button class="btn" type="button" onclick="exportProgress()">Backup</button>
       </div>
     </div>
+
+    <div id="backupInlinePanel" class="panel cardPad backupInlinePanel" style="display:none;margin-top:12px">
+      <p class="cardLabel">Backup output</p>
+      <h2 class="cardTitle">Copy this backup</h2>
+      <p class="detail">If your iPhone blocks the file download, copy the text below and save it in Notes or Files before updating the app.</p>
+      <textarea id="backupInlineText" class="backupText" readonly></textarea>
+      <div class="toolbar">
+        <button class="btn primary" type="button" onclick="copyInlineBackupText()">Copy backup</button>
+        <button class="btn" type="button" onclick="hideInlineBackup()">Hide</button>
+      </div>
+    </div>
+
     <div class="panel cardPad alert" style="margin-top:12px">
       <p class="cardLabel">Injury rule</p>
       <h2 class="cardTitle">Pain rule</h2>
@@ -1239,8 +1258,8 @@ textarea{
     <p>The app will try to download a JSON file. If iPhone blocks it, copy the text below and save it in Notes or Files.</p>
     <textarea id="backupText" class="backupText" readonly></textarea>
     <div class="backupButtons">
-      <button class="btn primary" data-action="copy-backup">Copy backup</button>
-      <button class="btn" data-action="close-backup">Close</button>
+      <button class="btn primary" type="button" onclick="copyBackupText()">Copy backup</button>
+      <button class="btn" type="button" onclick="closeBackupOverlay()">Close</button>
     </div>
     <div class="backupHint">Keep this backup somewhere safe before replacing the GitHub HTML file or deleting/reinstalling the Home Screen app.</div>
   </div>
@@ -1713,51 +1732,85 @@ function getBackupPayload(){
   };
 }
 
-function showBackupOverlay(text){
+function writeBackupEverywhere(text){
   const overlay=document.getElementById('backupOverlay');
   const box=document.getElementById('backupText');
-  if(!overlay || !box) return;
-  box.value=text;
-  overlay.classList.add('show');
-  overlay.setAttribute('aria-hidden','false');
+  const inline=document.getElementById('backupInlinePanel');
+  const inlineBox=document.getElementById('backupInlineText');
+
+  if(box) box.value=text;
+  if(overlay){
+    overlay.classList.add('show');
+    overlay.style.display='flex';
+    overlay.setAttribute('aria-hidden','false');
+  }
+
+  if(inline && inlineBox){
+    inline.style.display='block';
+    inlineBox.value=text;
+    inline.scrollIntoView({behavior:'smooth', block:'center'});
+  }
+
   setTimeout(() => {
-    box.focus();
-    box.select();
-  }, 50);
+    if(box){
+      box.focus();
+      box.select();
+    } else if(inlineBox){
+      inlineBox.focus();
+      inlineBox.select();
+    }
+  }, 80);
+}
+
+function showBackupOverlay(text){
+  writeBackupEverywhere(text);
 }
 
 function closeBackupOverlay(){
   const overlay=document.getElementById('backupOverlay');
   if(!overlay) return;
   overlay.classList.remove('show');
+  overlay.style.display='none';
   overlay.setAttribute('aria-hidden','true');
 }
 
-async function copyBackupText(){
-  const box=document.getElementById('backupText');
-  if(!box) return;
-  const text=box.value || '';
+function hideInlineBackup(){
+  const inline=document.getElementById('backupInlinePanel');
+  if(inline) inline.style.display='none';
+}
+
+async function copyTextFromElement(el){
+  if(!el) return;
+  const text=el.value || '';
   try{
     if(navigator.clipboard && navigator.clipboard.writeText){
       await navigator.clipboard.writeText(text);
     } else {
-      box.focus();
-      box.select();
+      el.focus();
+      el.select();
       document.execCommand('copy');
     }
   }catch(e){
-    box.focus();
-    box.select();
+    el.focus();
+    el.select();
   }
+}
+
+function copyBackupText(){
+  copyTextFromElement(document.getElementById('backupText'));
+}
+
+function copyInlineBackupText(){
+  copyTextFromElement(document.getElementById('backupInlineText'));
 }
 
 function exportProgress(){
   const text=JSON.stringify(getBackupPayload(), null, 2);
 
-  // Always show the visible backup first, because iOS Home Screen apps can silently block downloads.
-  showBackupOverlay(text);
+  // Direct visible fallback first. This cannot be blocked by iOS download restrictions.
+  writeBackupEverywhere(text);
 
-  // Also try a normal file download for browsers that allow it.
+  // Try normal browser download as a bonus.
   try{
     const blob=new Blob([text],{type:'application/json'});
     const a=document.createElement('a');
