@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>RTTS Ultra Tracker</title>
+<!-- PLAN_OPEN_STATE_FIX_V10 -->
 <meta name="theme-color" content="#05070B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1175,6 +1176,10 @@ const DATA = JSON.parse(document.getElementById('planData').textContent);
 const STORE = 'rttsUltraTrackerDashboardRewrite.v9';
 let state = loadState();
 
+// Tracks which week cards are currently open during this session.
+// Weeks still load collapsed by default, but they no longer collapse when you tick boxes inside them.
+let openWeeks = new Set();
+
 const allDays = (() => {
   const map = new Map();
   DATA.plan.forEach(w => w.days.forEach(d => map.set(d.date, {...d, week:w.week, phase:w.phase, focus:w.focus})));
@@ -1545,7 +1550,7 @@ function renderWeeks(filter=''){
     if(!days.length) return '';
     const st=weekStats(days);
     const isCurrent=days.some(d => d.date===isoToday());
-    return `<section class="panel week" id="week-${idx}">
+    return `<section class="panel week ${openWeeks.has(String(idx)) ? 'open' : ''}" id="week-${idx}">
       <div class="weekHead"><div><h2 class="weekTitle">${esc(w.week)}</h2><p class="meta">${esc(w.phase||'')} · starts ${dObj(w.start).toLocaleDateString('en-GB',{day:'numeric',month:'short'})} · ${w.plannedMiles || w.totalMiles || 0} miles planned</p></div><button class="btn" data-action="week" data-week="${idx}">Open</button></div>
       <div class="weekStats"><div class="mini"><b>${st.started}/${days.length}</b><span>Days started</span></div><div class="mini"><b>${Math.round(st.runMiles)}</b><span>Miles ticked</span></div><div class="mini"><b>${st.actDone}/${st.actTotal}</b><span>Activation</span></div></div>
       <div class="pills"><span class="pill tag-long">Long: ${w.longRun || '—'} mi</span><span class="pill tag-rehab">${esc(w.phase || '')}</span></div>
@@ -1602,7 +1607,15 @@ function jumpToday(){
   showTab('plan');
   setTimeout(() => {
     const el=document.querySelector(`[data-date="${isoToday()}"]`);
-    if(el){el.closest('.week')?.classList.add('open'); el.scrollIntoView({behavior:'smooth',block:'center'})}
+    if(el){
+      const week = el.closest('.week');
+      if(week){
+        week.classList.add('open');
+        const id = week.id.replace('week-','');
+        openWeeks.add(String(id));
+      }
+      el.scrollIntoView({behavior:'smooth',block:'center'})
+    }
   },80);
 }
 function exportProgress(){
@@ -1624,7 +1637,15 @@ document.addEventListener('click', e => {
 
   if(action==='activation'){toggleActivation(target.dataset.date, target.dataset.name)}
   if(action==='pain'){setPain(target.dataset.date, target.dataset.value)}
-  if(action==='week'){document.getElementById('week-' + target.dataset.week)?.classList.toggle('open')}
+  if(action==='week'){
+    const weekId = String(target.dataset.week);
+    const el = document.getElementById('week-' + weekId);
+    if(el){
+      el.classList.toggle('open');
+      if(el.classList.contains('open')) openWeeks.add(weekId);
+      else openWeeks.delete(weekId);
+    }
+  }
   if(action==='jump-today'){jumpToday()}
   if(action==='export'){exportProgress()}
 });
