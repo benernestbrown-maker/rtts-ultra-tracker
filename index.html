@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>RTTS Ultra Tracker</title>
+<!-- AUTO_BACKUP_TEXT_V15 -->
+<!-- EMERGENCY_BACKUP_V14 -->
 <!-- BACKUP_DIRECT_V13 -->
 <!-- BACKUP_MODAL_V12 -->
 <!-- PHYSIO_STRENGTH_RESTORED_V11 -->
@@ -1175,6 +1177,30 @@ textarea{
   min-height:240px;
 }
 
+
+/* === EMERGENCY MANUAL BACKUP V14 === */
+.emergencyBackupPanel{
+  border-color:rgba(199,255,46,.24);
+  background:rgba(199,255,46,.045);
+}
+.emergencyBackupPanel .backupText{
+  min-height:260px;
+  font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+
+
+/* === AUTO MOBILE BACKUP V15 === */
+.autoBackupPanel{
+  border-color:rgba(99,231,255,.26);
+  background:rgba(99,231,255,.045);
+}
+.autoBackupPanel .backupText{
+  min-height:280px;
+  font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  -webkit-user-select:text;
+  user-select:text;
+}
+
 </style>
 </head>
 
@@ -1228,7 +1254,7 @@ textarea{
       <div class="progressTrack"><div id="pFill" class="progressFill"></div></div>
       <div class="toolbar">
         <button class="btn primary" data-action="jump-today">Today</button>
-        <button class="btn" type="button" onclick="exportProgress()">Backup</button>
+        <button class="btn" type="button" onclick="exportProgress()">Backup old</button>
       </div>
     </div>
 
@@ -1240,6 +1266,31 @@ textarea{
       <div class="toolbar">
         <button class="btn primary" type="button" onclick="copyInlineBackupText()">Copy backup</button>
         <button class="btn" type="button" onclick="hideInlineBackup()">Hide</button>
+      </div>
+    </div>
+
+    
+    
+    <div class="panel cardPad autoBackupPanel" style="margin-top:12px">
+      <p class="cardLabel">Mobile-safe backup</p>
+      <h2 class="cardTitle">Backup text</h2>
+      <p class="detail">This box updates automatically when you open Progress. On iPhone, press and hold inside the box, select all, then copy it into Notes or Files.</p>
+      <textarea id="autoBackupText" class="backupText" readonly style="margin-top:12px"></textarea>
+      <div class="toolbar">
+        <button class="btn primary" type="button" onclick="refreshAutoBackup()">Refresh text</button>
+        <button class="btn" type="button" onclick="selectAutoBackup()">Select text</button>
+      </div>
+    </div>
+
+    <div class="panel cardPad emergencyBackupPanel" style="margin-top:12px">
+      <p class="cardLabel">Data safety</p>
+      <h2 class="cardTitle">Backup</h2>
+      <p class="detail">Tap this before updating the app. It will show a copyable JSON backup below.</p>
+      <button class="btn primary" type="button" onclick="manualBackupNow()" style="width:100%;margin-top:12px">Create backup now</button>
+      <textarea id="manualBackupText" class="backupText" readonly style="display:none;margin-top:12px"></textarea>
+      <div class="toolbar" id="manualBackupToolbar" style="display:none">
+        <button class="btn primary" type="button" onclick="copyManualBackup()">Copy backup</button>
+        <button class="btn" type="button" onclick="downloadManualBackup()">Download</button>
       </div>
     </div>
 
@@ -1692,14 +1743,118 @@ function updateStats(){
   ['topCountdown'].forEach(id => {const el=document.getElementById(id); if(el) el.textContent=toRace});
   ['progressFill','pFill'].forEach(id => {const el=document.getElementById(id); if(el) el.style.width=pct + '%'});
   ['dashPct'].forEach(id => {const el=document.getElementById(id); if(el) el.textContent=pct + '%'});
+  const autoBackupBox=document.getElementById('autoBackupText');
+  if(autoBackupBox) autoBackupBox.value=currentBackupText();
 }
+
+function manualBackupPayload(){
+  return JSON.stringify({
+    exported:new Date().toISOString(),
+    app:'RTTS Ultra Tracker',
+    storageKey:STORE,
+    progress:state
+  }, null, 2);
+}
+
+function manualBackupNow(){
+  const text = manualBackupPayload();
+  const box = document.getElementById('manualBackupText');
+  const toolbar = document.getElementById('manualBackupToolbar');
+
+  if(box){
+    box.style.display='block';
+    box.value=text;
+    box.focus();
+    box.select();
+  }
+
+  if(toolbar){
+    toolbar.style.display='grid';
+  }
+
+  try{
+    const blob=new Blob([text],{type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='rtts-progress-backup.json';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      URL.revokeObjectURL(a.href);
+      a.remove();
+    }, 500);
+  }catch(e){}
+}
+
+async function copyManualBackup(){
+  const box=document.getElementById('manualBackupText');
+  if(!box) return;
+  const text=box.value || manualBackupPayload();
+  box.value=text;
+  box.style.display='block';
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(text);
+    }else{
+      box.focus();
+      box.select();
+      document.execCommand('copy');
+    }
+  }catch(e){
+    box.focus();
+    box.select();
+  }
+}
+
+function downloadManualBackup(){
+  const text = manualBackupPayload();
+  try{
+    const blob=new Blob([text],{type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='rtts-progress-backup.json';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      URL.revokeObjectURL(a.href);
+      a.remove();
+    }, 500);
+  }catch(e){}
+}
+
+
+
+function currentBackupText(){
+  return JSON.stringify({
+    exported:new Date().toISOString(),
+    app:'RTTS Ultra Tracker',
+    storageKey:STORE,
+    progress:state
+  }, null, 2);
+}
+
+function refreshAutoBackup(){
+  const box=document.getElementById('autoBackupText');
+  if(!box) return;
+  box.value=currentBackupText();
+}
+
+function selectAutoBackup(){
+  const box=document.getElementById('autoBackupText');
+  if(!box) return;
+  refreshAutoBackup();
+  box.focus();
+  box.select();
+  try{ box.setSelectionRange(0, box.value.length); }catch(e){}
+}
+
 function showTab(id){
   document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab===id));
   document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id===id));
   if(id==='today') renderToday();
   if(id==='plan') renderWeeks(document.getElementById('search').value);
   if(id==='strength') renderLibrary();
-  if(id==='progress') updateStats();
+  if(id==='progress'){ updateStats(); setTimeout(refreshAutoBackup, 50); }
 }
 function rerenderSoft(){
   const active=document.querySelector('.section.active')?.id;
@@ -1874,6 +2029,7 @@ document.addEventListener('input', e => {
 
 renderToday();
 updateStats();
+setTimeout(refreshAutoBackup, 150);
 
 if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(reg => reg.unregister())).catch(()=>{})}
 if('caches' in window){caches.keys().then(keys => keys.forEach(k => caches.delete(k))).catch(()=>{})}
