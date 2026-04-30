@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>RTTS Ultra Tracker</title>
+<!-- BACKUP_MODAL_V12 -->
+<!-- PHYSIO_STRENGTH_RESTORED_V11 -->
 <!-- PLAN_OPEN_STATE_FIX_V10 -->
 <meta name="theme-color" content="#05070B">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1098,6 +1100,74 @@ textarea{
   color:var(--ink);
 }
 
+
+/* === RELIABLE BACKUP MODAL V12 === */
+.backupOverlay{
+  position:fixed;
+  inset:0;
+  z-index:999;
+  display:none;
+  align-items:flex-end;
+  justify-content:center;
+  background:rgba(0,0,0,.72);
+  backdrop-filter:blur(10px);
+  padding:16px;
+}
+.backupOverlay.show{
+  display:flex;
+}
+.backupSheet{
+  width:100%;
+  max-width:720px;
+  max-height:86vh;
+  overflow:auto;
+  border-radius:28px;
+  border:1px solid var(--line2);
+  background:linear-gradient(180deg,rgba(17,24,36,.98),rgba(8,12,18,.98));
+  box-shadow:0 28px 90px rgba(0,0,0,.65);
+  padding:16px;
+}
+.backupSheet h2{
+  margin:0;
+  font-family:var(--font-display);
+  font-size:28px;
+  line-height:1;
+  letter-spacing:-.04em;
+}
+.backupSheet p{
+  margin:8px 0 0;
+  color:var(--soft);
+  font-size:13px;
+  line-height:1.45;
+}
+.backupText{
+  width:100%;
+  min-height:220px;
+  margin-top:12px;
+  border-radius:18px;
+  border:1px solid var(--line2);
+  background:rgba(0,0,0,.32);
+  color:var(--ink);
+  padding:12px;
+  font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+.backupButtons{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:12px;
+}
+.backupHint{
+  margin-top:10px;
+  padding:12px;
+  border-radius:18px;
+  border:1px solid rgba(199,255,46,.22);
+  background:rgba(199,255,46,.06);
+  color:var(--soft);
+  font-size:12px;
+  line-height:1.4;
+}
+
 </style>
 </head>
 
@@ -1160,6 +1230,20 @@ textarea{
       <p class="detail">If the IT band rises above 2/10, changes your gait, or gets worse as the run goes on, stop the session and protect the next 48 hours.</p>
     </div>
   </section>
+</div>
+
+
+<div id="backupOverlay" class="backupOverlay" aria-hidden="true">
+  <div class="backupSheet">
+    <h2>Backup your data</h2>
+    <p>The app will try to download a JSON file. If iPhone blocks it, copy the text below and save it in Notes or Files.</p>
+    <textarea id="backupText" class="backupText" readonly></textarea>
+    <div class="backupButtons">
+      <button class="btn primary" data-action="copy-backup">Copy backup</button>
+      <button class="btn" data-action="close-backup">Close</button>
+    </div>
+    <div class="backupHint">Keep this backup somewhere safe before replacing the GitHub HTML file or deleting/reinstalling the Home Screen app.</div>
+  </div>
 </div>
 
 <nav class="tabs">
@@ -1281,27 +1365,29 @@ function effectiveDay(day){
     _originalRunType: day.runType || '',
     miles: 0,
     runType: 'No running',
-    effort: reason === 'physio' ? 'Physio-directed no-run block' : '48-hour ITB reset',
-    title: hadRun ? 'No running + cross-training' : (day.title || 'No running'),
-    other: existingOther ? `${existingOther} + cross-training` : 'Cross-training + daily activation'
+    effort: reason === 'physio' ? 'Physio-directed running break' : '48-hour ITB no-run reset',
+    title: hadRun ? 'No running' : (day.title || 'No running'),
+    other: existingOther
   };
+
+  if (!existingOther && hadRun) {
+    base.other = 'Cross-training optional';
+  }
 
   if (reason === 'physio') {
     base.notes = hadRun
-      ? `Physio-advised no running. Replace the planned ${originalMiles || ''} mi run with easy low-impact cross-training if symptoms allow. Keep strength, rehab, mobility and daily activation going.`
-      : 'Physio-advised no running. Keep strength, rehab, mobility, easy walking and daily activation going.';
+      ? `Physio-advised running break. Do not run the planned ${originalMiles || ''} mi. Keep the scheduled strength work exactly as planned. Cross-training is optional and should be easy/low-impact only if comfortable.`
+      : 'Physio-advised running break. No running today. Keep the scheduled strength work exactly as planned.';
   }
 
   if (reason === 'itb48') {
     base.notes = hadRun
-      ? `IT band was rated 4+ in the previous 48 hours. Replace the planned ${originalMiles || ''} mi run with easy low-impact cross-training only if comfortable. Keep strength/rehab/mobility work controlled.`
-      : 'IT band was rated 4+ in the previous 48 hours. No running today. Keep only controlled rehab, mobility and easy cross-training if comfortable.';
+      ? `IT band was rated 4+ in the previous 48 hours. Do not run the planned ${originalMiles || ''} mi. Keep scheduled strength work if it is pain-free and controlled.`
+      : 'IT band was rated 4+ in the previous 48 hours. No running today. Keep scheduled strength work if it is pain-free and controlled.';
   }
 
   return base;
 }
-
-
 
 function sessionClass(d){
   const txt=[d.title,d.runType,d.pace,d.notes,d.other].join(' ').toLowerCase();
@@ -1437,7 +1523,7 @@ function dayCard(d){
           ${pace}
         </div>
 
-        ${d._blockedReason ? `<div class="physioBanner"><b>${d._blockedReason === 'physio' ? 'Physio no-run block' : '48-hour ITB no-run block'}:</b> running removed, keep non-running work controlled.</div>` : ''}
+        ${d._blockedReason ? `<div class="physioBanner"><b>${d._blockedReason === 'physio' ? 'Physio running break' : '48-hour ITB no-run block'}:</b> running removed only. Keep scheduled strength work as written.</div>` : ''}
         <div class="priority"><b>Priority</b>${esc(coachingCue(d))}</div>
         ${d.notes ? `<p class="detail">${esc(d.notes)}</p>` : ''}
 
@@ -1448,7 +1534,7 @@ function dayCard(d){
           </label>
           <label class="trackRow">
             <input class="nativeCheck" type="checkbox" ${otherChecked} ${(!d.other && !sess.length) ? 'disabled' : ''} data-action="other" data-date="${esc(d.date)}">
-            <span><span class="trackTitle">Scheduled strength / rehab completed</span><span class="trackSub">${d.other ? esc(d.other) : (sess.length ? sess.map(esc).join(', ') : 'Nothing planned')}</span></span>
+            <span><span class="trackTitle">Scheduled strength / other work completed</span><span class="trackSub">${d.other ? esc(d.other) : (sess.length ? sess.map(esc).join(', ') : 'Nothing planned')}</span></span>
           </label>
         </div>
 
@@ -1466,11 +1552,11 @@ function todayNoteHTML(d){
   const txt = ((d.other||'') + ' ' + (d.title||'') + ' ' + (d.notes||'')).toLowerCase();
 
   if (d._blockedReason === 'physio') {
-    return `<div class="todayNote">Physio no-run block is active. This is day ${Math.max(1, Math.min(14, Math.floor((dObj(d.date) - dObj(PHYSIO_NO_RUN_START)) / 86400000) + 1))} of 14. Replace running with easy low-impact cross-training if comfortable, and keep strength, rehab, mobility and activation going.</div>`;
+    return `<div class="todayNote">Physio running break is active. This is day ${Math.max(1, Math.min(14, Math.floor((dObj(d.date) - dObj(PHYSIO_NO_RUN_START)) / 86400000) + 1))} of 14. Running is removed only. Keep the scheduled strength work as written. Use easy low-impact cross-training only if it feels comfortable.</div>`;
   }
 
   if (d._blockedReason === 'itb48') {
-    return `<div class="todayNote">IT band 4+ rule is active. Running is removed for the next 48 hours. Keep the non-running work controlled, and use easy cross-training only if it does not increase symptoms.</div>`;
+    return `<div class="todayNote">IT band 4+ rule is active. Running is removed for the next 48 hours only. Keep scheduled strength work if pain-free and controlled.</div>`;
   }
 
   if (txt.includes('mobility')) {
@@ -1618,13 +1704,72 @@ function jumpToday(){
     }
   },80);
 }
+function getBackupPayload(){
+  return {
+    exported:new Date().toISOString(),
+    app:'RTTS Ultra Tracker',
+    storageKey:STORE,
+    progress:state
+  };
+}
+
+function showBackupOverlay(text){
+  const overlay=document.getElementById('backupOverlay');
+  const box=document.getElementById('backupText');
+  if(!overlay || !box) return;
+  box.value=text;
+  overlay.classList.add('show');
+  overlay.setAttribute('aria-hidden','false');
+  setTimeout(() => {
+    box.focus();
+    box.select();
+  }, 50);
+}
+
+function closeBackupOverlay(){
+  const overlay=document.getElementById('backupOverlay');
+  if(!overlay) return;
+  overlay.classList.remove('show');
+  overlay.setAttribute('aria-hidden','true');
+}
+
+async function copyBackupText(){
+  const box=document.getElementById('backupText');
+  if(!box) return;
+  const text=box.value || '';
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(text);
+    } else {
+      box.focus();
+      box.select();
+      document.execCommand('copy');
+    }
+  }catch(e){
+    box.focus();
+    box.select();
+  }
+}
+
 function exportProgress(){
-  const blob=new Blob([JSON.stringify({exported:new Date().toISOString(),progress:state},null,2)],{type:'application/json'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='rtts-progress-backup.json';
-  a.click();
-  URL.revokeObjectURL(a.href);
+  const text=JSON.stringify(getBackupPayload(), null, 2);
+
+  // Always show the visible backup first, because iOS Home Screen apps can silently block downloads.
+  showBackupOverlay(text);
+
+  // Also try a normal file download for browsers that allow it.
+  try{
+    const blob=new Blob([text],{type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='rtts-progress-backup.json';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      URL.revokeObjectURL(a.href);
+      a.remove();
+    }, 500);
+  }catch(e){}
 }
 
 document.addEventListener('click', e => {
@@ -1648,6 +1793,14 @@ document.addEventListener('click', e => {
   }
   if(action==='jump-today'){jumpToday()}
   if(action==='export'){exportProgress()}
+  if(action==='close-backup'){closeBackupOverlay()}
+  if(action==='copy-backup'){copyBackupText()}
+});
+
+// backupOverlay background close V12
+document.addEventListener('click', e => {
+  const overlay=document.getElementById('backupOverlay');
+  if(overlay && e.target === overlay) closeBackupOverlay();
 });
 
 document.addEventListener('change', e => {
