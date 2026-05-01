@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>RTTS Ultra Tracker</title>
+<!-- STRENGTH_VISIBLE_DURING_RUNNING_BREAK_V17 -->
 <!-- IMPORT_AND_STRENGTH_FIXED_V16 -->
 <!-- AUTO_BACKUP_TEXT_V15 -->
 <!-- EMERGENCY_BACKUP_V14 -->
@@ -1446,13 +1447,17 @@ function noRunReason(date){
   return '';
 }
 
-function physioStrengthForDate(date){
+function physioStrengthForDate(date, existingOther=''){
   if (!physioNoRun(date)) return '';
-  const d = dObj(date);
-  const dow = d.getDay(); // 0 Sun, 1 Mon, 2 Tue, 3 Wed...
-  if (dow === 1) return 'S&C A';
-  if (dow === 3) return 'S&C B';
-  return '';
+
+  // Do not double-add if the original plan already has a proper S&C session.
+  const existing = String(existingOther || '').toLowerCase();
+  if (existing.includes('s&c a') || existing.includes('s&c b')) return '';
+
+  // Two-week running break: running is removed, strength remains.
+  // Alternate A/B so every day has actual strength work visible in the app.
+  const dayNo = Math.max(1, Math.floor((dObj(date) - dObj(PHYSIO_NO_RUN_START)) / 86400000) + 1);
+  return dayNo % 2 === 1 ? 'S&C A' : 'S&C B';
 }
 
 function mergeOtherWork(existing, addition){
@@ -1476,7 +1481,7 @@ function effectiveDay(day){
   // During the physio running break, running goes. Strength stays.
   // If the underlying plan day does not already name strength, keep the normal Mon/Wed S&C rhythm.
   if (reason === 'physio') {
-    otherWork = mergeOtherWork(otherWork, physioStrengthForDate(day.date));
+    otherWork = mergeOtherWork(otherWork, physioStrengthForDate(day.date, otherWork));
   }
 
   if (!otherWork && hadRun) {
@@ -1497,8 +1502,8 @@ function effectiveDay(day){
 
   if (reason === 'physio') {
     base.notes = hadRun
-      ? `Physio-advised running break. Do not run the planned ${originalMiles || ''} mi. Keep the scheduled strength work. Cross-training is optional and should be easy/low-impact only if comfortable.`
-      : 'Physio-advised running break. No running today. Keep the scheduled strength work.';
+      ? `Physio-advised running break. Do not run the planned ${originalMiles || ''} mi. Keep the scheduled strength work shown for the day shown for the day. Cross-training is optional and should be easy/low-impact only if comfortable.`
+      : 'Physio-advised running break. No running today. Keep the scheduled strength work shown for the day shown for the day.';
   }
 
   if (reason === 'itb48') {
@@ -1673,7 +1678,7 @@ function todayNoteHTML(d){
   const txt = ((d.other||'') + ' ' + (d.title||'') + ' ' + (d.notes||'')).toLowerCase();
 
   if (d._blockedReason === 'physio') {
-    return `<div class="todayNote">Physio running break is active. This is day ${Math.max(1, Math.min(14, Math.floor((dObj(d.date) - dObj(PHYSIO_NO_RUN_START)) / 86400000) + 1))} of 14. Running is removed only. Strength work remains in the plan. Cross-training is optional and low-impact only.</div>`;
+    return `<div class="todayNote">Physio running break is active. This is day ${Math.max(1, Math.min(14, Math.floor((dObj(d.date) - dObj(PHYSIO_NO_RUN_START)) / 86400000) + 1))} of 14. Running is removed only. Running is removed only. Strength work remains visible in the plan every day during the running break. Cross-training is optional and low-impact only.</div>`;
   }
 
   if (d._blockedReason === 'itb48') {
