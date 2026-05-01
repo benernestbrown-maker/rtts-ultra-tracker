@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>RTTS Ultra Tracker</title>
+<!-- IMPORT_AND_STRENGTH_FIXED_V16 -->
 <!-- AUTO_BACKUP_TEXT_V15 -->
 <!-- EMERGENCY_BACKUP_V14 -->
 <!-- BACKUP_DIRECT_V13 -->
@@ -1201,6 +1202,17 @@ textarea{
   user-select:text;
 }
 
+
+/* === IMPORT RESTORE V16 === */
+.restorePanel{
+  border-color:rgba(53,232,137,.24);
+  background:rgba(53,232,137,.045);
+}
+.restorePanel .backupText{
+  min-height:200px;
+  font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+
 </style>
 </head>
 
@@ -1280,6 +1292,20 @@ textarea{
         <button class="btn primary" type="button" onclick="refreshAutoBackup()">Refresh text</button>
         <button class="btn" type="button" onclick="selectAutoBackup()">Select text</button>
       </div>
+    </div>
+
+    
+    <div class="panel cardPad restorePanel" style="margin-top:12px">
+      <p class="cardLabel">Restore data</p>
+      <h2 class="cardTitle">Import backup</h2>
+      <p class="detail">Paste a backup JSON below or choose a backup file, then tap Restore. This restores ticks, notes, weights and IT band ratings from the backup.</p>
+      <textarea id="restoreText" class="backupText" placeholder="Paste rtts-progress-backup.json content here" style="margin-top:12px"></textarea>
+      <input id="restoreFile" type="file" accept="application/json,.json,text/plain" style="display:none" onchange="restoreFromSelectedFile(this)">
+      <div class="toolbar">
+        <button class="btn" type="button" onclick="document.getElementById('restoreFile').click()">Choose file</button>
+        <button class="btn primary" type="button" onclick="restoreBackupNow()">Restore</button>
+      </div>
+      <p id="restoreStatus" class="detail"></p>
     </div>
 
     <div class="panel cardPad emergencyBackupPanel" style="margin-top:12px">
@@ -1420,13 +1446,42 @@ function noRunReason(date){
   return '';
 }
 
+function physioStrengthForDate(date){
+  if (!physioNoRun(date)) return '';
+  const d = dObj(date);
+  const dow = d.getDay(); // 0 Sun, 1 Mon, 2 Tue, 3 Wed...
+  if (dow === 1) return 'S&C A';
+  if (dow === 3) return 'S&C B';
+  return '';
+}
+
+function mergeOtherWork(existing, addition){
+  existing = String(existing || '').trim();
+  addition = String(addition || '').trim();
+  if (!addition) return existing;
+  if (!existing) return addition;
+  if (existing.toLowerCase().includes(addition.toLowerCase())) return existing;
+  return `${existing} + ${addition}`;
+}
+
+
 function effectiveDay(day){
   const reason = noRunReason(day.date);
   if (!reason) return day;
 
   const hadRun = Number(day.miles || 0) > 0 && String(day.runType || '').toLowerCase() !== 'rest';
   const originalMiles = Number(day.miles || 0);
-  const existingOther = String(day.other || '').trim();
+  let otherWork = String(day.other || '').trim();
+
+  // During the physio running break, running goes. Strength stays.
+  // If the underlying plan day does not already name strength, keep the normal Mon/Wed S&C rhythm.
+  if (reason === 'physio') {
+    otherWork = mergeOtherWork(otherWork, physioStrengthForDate(day.date));
+  }
+
+  if (!otherWork && hadRun) {
+    otherWork = 'Cross-training optional';
+  }
 
   const base = {
     ...day,
@@ -1437,17 +1492,13 @@ function effectiveDay(day){
     runType: 'No running',
     effort: reason === 'physio' ? 'Physio-directed running break' : '48-hour ITB no-run reset',
     title: hadRun ? 'No running' : (day.title || 'No running'),
-    other: existingOther
+    other: otherWork
   };
-
-  if (!existingOther && hadRun) {
-    base.other = 'Cross-training optional';
-  }
 
   if (reason === 'physio') {
     base.notes = hadRun
-      ? `Physio-advised running break. Do not run the planned ${originalMiles || ''} mi. Keep the scheduled strength work exactly as planned. Cross-training is optional and should be easy/low-impact only if comfortable.`
-      : 'Physio-advised running break. No running today. Keep the scheduled strength work exactly as planned.';
+      ? `Physio-advised running break. Do not run the planned ${originalMiles || ''} mi. Keep the scheduled strength work. Cross-training is optional and should be easy/low-impact only if comfortable.`
+      : 'Physio-advised running break. No running today. Keep the scheduled strength work.';
   }
 
   if (reason === 'itb48') {
@@ -1593,7 +1644,7 @@ function dayCard(d){
           ${pace}
         </div>
 
-        ${d._blockedReason ? `<div class="physioBanner"><b>${d._blockedReason === 'physio' ? 'Physio running break' : '48-hour ITB no-run block'}:</b> running removed only. Keep scheduled strength work as written.</div>` : ''}
+        ${d._blockedReason ? `<div class="physioBanner"><b>${d._blockedReason === 'physio' ? 'Physio running break' : '48-hour ITB no-run block'}:</b> running removed only. Strength work stays.</div>` : ''}
         <div class="priority"><b>Priority</b>${esc(coachingCue(d))}</div>
         ${d.notes ? `<p class="detail">${esc(d.notes)}</p>` : ''}
 
@@ -1622,7 +1673,7 @@ function todayNoteHTML(d){
   const txt = ((d.other||'') + ' ' + (d.title||'') + ' ' + (d.notes||'')).toLowerCase();
 
   if (d._blockedReason === 'physio') {
-    return `<div class="todayNote">Physio running break is active. This is day ${Math.max(1, Math.min(14, Math.floor((dObj(d.date) - dObj(PHYSIO_NO_RUN_START)) / 86400000) + 1))} of 14. Running is removed only. Keep the scheduled strength work as written. Use easy low-impact cross-training only if it feels comfortable.</div>`;
+    return `<div class="todayNote">Physio running break is active. This is day ${Math.max(1, Math.min(14, Math.floor((dObj(d.date) - dObj(PHYSIO_NO_RUN_START)) / 86400000) + 1))} of 14. Running is removed only. Strength work remains in the plan. Cross-training is optional and low-impact only.</div>`;
   }
 
   if (d._blockedReason === 'itb48') {
@@ -1847,6 +1898,65 @@ function selectAutoBackup(){
   box.select();
   try{ box.setSelectionRange(0, box.value.length); }catch(e){}
 }
+
+
+function normaliseBackupObject(parsed){
+  if (!parsed || typeof parsed !== 'object') throw new Error('Backup is not valid JSON.');
+  if (parsed.progress && typeof parsed.progress === 'object') return parsed.progress;
+  return parsed;
+}
+
+function restoreBackupText(raw){
+  const parsed = JSON.parse(raw);
+  const restored = normaliseBackupObject(parsed);
+  state = restored || {};
+  localStorage.setItem(STORE, JSON.stringify(state));
+  updateStats();
+  rerenderSoft();
+  refreshAutoBackup();
+  const status=document.getElementById('restoreStatus');
+  if(status) status.textContent='Restore complete. Your saved ticks, notes, weights and IT band ratings have been reloaded.';
+}
+
+function restoreBackupNow(){
+  const box=document.getElementById('restoreText');
+  const status=document.getElementById('restoreStatus');
+  const raw=box ? box.value.trim() : '';
+  if(!raw){
+    if(status) status.textContent='Paste backup JSON or choose a file first.';
+    return;
+  }
+  try{
+    restoreBackupText(raw);
+  }catch(e){
+    if(status) status.textContent='Restore failed: ' + (e.message || 'invalid backup text');
+  }
+}
+
+function restoreFromSelectedFile(input){
+  const status=document.getElementById('restoreStatus');
+  const file=input && input.files && input.files[0];
+  if(!file){
+    if(status) status.textContent='No file selected.';
+    return;
+  }
+  const reader=new FileReader();
+  reader.onload=function(){
+    const text=String(reader.result || '');
+    const box=document.getElementById('restoreText');
+    if(box) box.value=text;
+    try{
+      restoreBackupText(text);
+    }catch(e){
+      if(status) status.textContent='Restore failed: ' + (e.message || 'invalid backup file');
+    }
+  };
+  reader.onerror=function(){
+    if(status) status.textContent='Could not read the selected file.';
+  };
+  reader.readAsText(file);
+}
+
 
 function showTab(id){
   document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab===id));
