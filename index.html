@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>RTTS Ultra Tracker</title>
+<!-- REP_COUNTER_AND_CLEAN_STRENGTH_ALTERNATION_V18 -->
 <!-- STRENGTH_VISIBLE_DURING_RUNNING_BREAK_V17 -->
 <!-- IMPORT_AND_STRENGTH_FIXED_V16 -->
 <!-- AUTO_BACKUP_TEXT_V15 -->
@@ -1214,6 +1215,53 @@ textarea{
   font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 
+
+/* === REP COUNTER V18 === */
+.strengthInputs{
+  margin-left:auto;
+  display:flex;
+  gap:8px;
+  align-items:flex-start;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.repInput{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex:0 0 auto;
+}
+.repInput input{
+  width:76px;
+  border:1px solid var(--line2);
+  border-radius:14px;
+  background:rgba(255,255,255,.055);
+  padding:8px 9px;
+  text-align:right;
+  font-weight:800;
+  outline:none;
+}
+.repInput span{
+  color:var(--muted);
+  font-size:10px;
+  font-weight:900;
+  text-transform:uppercase;
+}
+.repInput input:focus{
+  border-color:rgba(99,231,255,.55);
+  box-shadow:0 0 0 3px rgba(99,231,255,.10);
+}
+@media(max-width:560px){
+  .exRow{
+    flex-wrap:wrap;
+  }
+  .strengthInputs{
+    width:100%;
+    margin-left:34px;
+    justify-content:flex-start;
+  }
+}
+
 </style>
 </head>
 
@@ -1398,6 +1446,7 @@ function slug(v){return String(v || '').toLowerCase().replace(/[^a-z0-9]+/g,'-')
 function key(date,type){return date + ':' + type}
 function exKey(date,session,exercise){return date + ':ex:' + slug(session) + ':' + slug(exercise)}
 function weightKey(date,session,exercise){return date + ':weight:' + slug(session) + ':' + slug(exercise)}
+function repKey(date,session,exercise){return date + ':reps:' + slug(session) + ':' + slug(exercise)}
 function noteKey(date){return date + ':note'}
 function actKey(date,name){return date + ':activation:' + slug(name)}
 function painKey(date){return date + ':pain'}
@@ -1450,12 +1499,8 @@ function noRunReason(date){
 function physioStrengthForDate(date, existingOther=''){
   if (!physioNoRun(date)) return '';
 
-  // Do not double-add if the original plan already has a proper S&C session.
-  const existing = String(existingOther || '').toLowerCase();
-  if (existing.includes('s&c a') || existing.includes('s&c b')) return '';
-
-  // Two-week running break: running is removed, strength remains.
-  // Alternate A/B so every day has actual strength work visible in the app.
+  // During the two-week running break, running is removed but strength stays.
+  // This alternates cleanly by day number so there is no A/A/A pile-up at week boundaries.
   const dayNo = Math.max(1, Math.floor((dObj(date) - dObj(PHYSIO_NO_RUN_START)) / 86400000) + 1);
   return dayNo % 2 === 1 ? 'S&C A' : 'S&C B';
 }
@@ -1478,10 +1523,19 @@ function effectiveDay(day){
   const originalMiles = Number(day.miles || 0);
   let otherWork = String(day.other || '').trim();
 
-  // During the physio running break, running goes. Strength stays.
-  // If the underlying plan day does not already name strength, keep the normal Mon/Wed S&C rhythm.
   if (reason === 'physio') {
-    otherWork = mergeOtherWork(otherWork, physioStrengthForDate(day.date, otherWork));
+    const forcedStrength = physioStrengthForDate(day.date, otherWork);
+
+    // Replace existing S&C A/B wording with the clean alternating session for this day.
+    if (forcedStrength) {
+      if (/s&c\s*a/i.test(otherWork) || /s&c\s*b/i.test(otherWork)) {
+        otherWork = otherWork
+          .replace(/s&c\s*a/ig, forcedStrength)
+          .replace(/s&c\s*b/ig, forcedStrength);
+      } else {
+        otherWork = mergeOtherWork(otherWork, forcedStrength);
+      }
+    }
   }
 
   if (!otherWork && hadRun) {
@@ -1502,8 +1556,8 @@ function effectiveDay(day){
 
   if (reason === 'physio') {
     base.notes = hadRun
-      ? `Physio-advised running break. Do not run the planned ${originalMiles || ''} mi. Keep the scheduled strength work shown for the day shown for the day. Cross-training is optional and should be easy/low-impact only if comfortable.`
-      : 'Physio-advised running break. No running today. Keep the scheduled strength work shown for the day shown for the day.';
+      ? `Physio-advised running break. Do not run the planned ${originalMiles || ''} mi. Complete the strength work shown for today. Cross-training is optional and should be easy/low-impact only if comfortable.`
+      : 'Physio-advised running break. No running today. Complete the strength work shown for today.';
   }
 
   if (reason === 'itb48') {
@@ -1599,23 +1653,30 @@ function exerciseHTML(d){
   return `<div class="block">
     <div class="blockHead"><b>Scheduled strength / rehab</b><span class="badge">${prog.done}/${prog.total} done</span></div>
     ${sessions.map(session => `
-      <div class="sessionBlock">
+      <div>
         <div class="sessionName">${esc(session)}</div>
         ${(bySession[session] || []).map(x => {
           const line=[x.Sets ? x.Sets + ' sets' : '', x['Reps / time'] || '', x['Load guide'] || ''].filter(Boolean).join(' • ');
           const checked=state[exKey(d.date,session,x.Exercise)] ? 'checked' : '';
           const w=state[weightKey(d.date,session,x.Exercise)] || '';
-          const wb=weightedExercise(x) ? `<label class="weight"><input type="number" inputmode="decimal" step="0.5" min="0" placeholder="kg" value="${esc(w)}" data-action="weight" data-date="${esc(d.date)}" data-session="${esc(session)}" data-exercise="${esc(x.Exercise)}"><span>kg</span></label>` : '';
+          const reps=state[repKey(d.date,session,x.Exercise)] || '';
+          const wb=weightedExercise(x) ? `<label class="weight"><input type="number" inputmode="decimal" step="0.5" min="0" placeholder="kg" value="${esc(w)}" onchange="setWeight(${attr(d.date)},${attr(session)},${attr(x.Exercise)},this.value)"><span>kg</span></label>` : '';
+          const rb=`<label class="repInput"><input type="number" inputmode="numeric" step="1" min="0" placeholder="reps" value="${esc(reps)}" onchange="setReps(${attr(d.date)},${attr(session)},${attr(x.Exercise)},this.value)"><span>reps</span></label>`;
           return `<label class="exRow">
-            <input class="exCheck" type="checkbox" ${checked} data-action="exercise" data-date="${esc(d.date)}" data-session="${esc(session)}" data-exercise="${esc(x.Exercise)}">
-            <span class="exText"><span class="exTitle">${esc(x.Exercise)}</span><span class="exMeta">${esc(line)}</span>${x.Notes ? `<span class="exMeta">${esc(x.Notes)}</span>` : ''}</span>
-            ${wb}
+            <input class="exCheck" type="checkbox" ${checked} onchange="setExercise(${attr(d.date)},${attr(session)},${attr(x.Exercise)},this.checked)">
+            <span class="exText">
+              <span class="exTitle">${esc(x.Exercise)}</span>
+              <span class="exMeta">${esc(line)}</span>
+              ${x.Notes ? `<span class="exMeta">${esc(x.Notes)}</span>` : ''}
+            </span>
+            <span class="strengthInputs">${rb}${wb}</span>
           </label>`;
         }).join('')}
       </div>
     `).join('')}
   </div>`;
 }
+
 function dayCard(d){
   d = effectiveDay(d);
   const b=dateBits(d.date);
